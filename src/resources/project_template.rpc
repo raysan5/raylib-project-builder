@@ -4,7 +4,7 @@
 # This definition file contains all required info to descrive a project
 # and allow building it for multiple platforms
 #
-# This file follow certain conventions to be able to display the information in 
+# This file follow certain conventions to be able to display the information in
 # an easy-configurable UI manner when loaded through [raylib project builder]
 # CONVENTIONS:
 #   - ID containing [_FLAG_]: Value is considered a boolean, it displays with a [GuiCheckBox]

@@ -708,7 +708,7 @@ static void UpdateDrawFrame(void)
         }
 
         GuiTabBar((Rectangle){ 0, 52 + 96 + 12, GetScreenWidth(), 24 }, tabText, 6, &currentTab);
-        
+
         int categoryHeight = 12;
         for (int i = 0; i < project.entryCount; i++)
         {
@@ -734,7 +734,7 @@ static void UpdateDrawFrame(void)
                 if ((project.entries[i].platform != RPB_PLATFORM_ANY) && (project.entries[i].platform != currentPlatform)) continue;
 
                 if (project.entries[i].type != RPB_TYPE_BOOL) GuiLabel((Rectangle){ 24, 52 + 96 + 12 + 36 + (24 + 8)*k + panelScroll.y, 180, 24 }, TextFormat("%s:", project.entries[i].name));
-               
+
                 GuiSetStyle(TEXTBOX, TEXT_ALIGNMENT, TEXT_ALIGN_LEFT);
                 switch (project.entries[i].type)
                 {
@@ -772,7 +772,7 @@ static void UpdateDrawFrame(void)
                 k++;
             }
         }
-        
+
         EndScissorMode();
         //----------------------------------------------------------------------------------
 
@@ -1153,7 +1153,7 @@ static rpbConfigData LoadProjectData(const char *fileName)
     {
         rini_data config = { 0 };
         config = rini_load(fileName);
-        
+
         // Process/organize config data for our application
         data.entries = (rpbEntry *)RL_CALLOC(config.count, sizeof(rpbEntry));
         data.entryCount = config.count;
@@ -1200,7 +1200,7 @@ static rpbConfigData LoadProjectData(const char *fileName)
             else if (TextIsEqual(category, "IMAGERY")) data.entries[i].category = RPB_CAT_IMAGERY;
             else if (TextIsEqual(category, "RAYLIB")) data.entries[i].category = RPB_CAT_RAYLIB;
         }
-        
+
         for (int i = 0; i < data.entryCount; i++)
         {
             // Type is parsed from key and value
@@ -1208,7 +1208,7 @@ static rpbConfigData LoadProjectData(const char *fileName)
             {
                 if (TextFindIndex(data.entries[i].key, "_FLAG")) data.entries[i].type = RPB_TYPE_BOOL;
                 else data.entries[i].type = RPB_TYPE_VALUE;
-                
+
                 // Get the value
                 data.entries[i].value = TextToInteger(config.values[i].text);
             }
