@@ -51,5 +51,28 @@ Module.symvers
 Mkfile.old
 dkms.conf
 
-# debug information files
-*.dwo
+# Visual Studio files
+[Dd]ebug/
+[Dd]ebug.DLL/
+[R]elease/
+[Rr]elease.DLL/
+*.user
+*.aps
+.vs
+
+# Clangd LSP
+.cache
+compile_commands.json
+
+# Build folder
+[Bb]uild
+
+# Android files
+*apk*
+android.*
+
+# WebAssembly release files
+*.data
+*.wasm
+*.html
+*.js
