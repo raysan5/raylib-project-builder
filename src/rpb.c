@@ -261,11 +261,8 @@ static double currentTime = 0;              // Current time counter in seconds
 static int toolState = 0;                   // Tool current state (if multiple screens)
 //-----------------------------------------------------------------------------------
 
-// Trial message(s) and Support Message Box
+// Support Message Box
 //-----------------------------------------------------------------------------------
-static time_t trialExpirationTime = 0;      // Trial expiration time (current time + TRIAL_TIME_SEC)
-static bool showTrialMessage = false;       // Show message when time expired
-
 #if defined(SPLASH_SUPPORT_MESSAGE)
 static bool showSupportMessage = true;      // Support message box splash message at startup
 #else
