@@ -658,8 +658,7 @@ static void UpdateDrawFrame(void)
         showMessageReset ||
         showLoadFileDialog ||
         showExportFileDialog ||
-        showSupportMessage ||
-        showTrialMessage)
+        showSupportMessage)
     {
         lockBackground = true;
     }
@@ -801,8 +800,7 @@ static void UpdateDrawFrame(void)
             showLoadFileDialog ||
             showSaveFileDialog ||
             showExportFileDialog ||
-            showSupportMessage ||
-            showTrialMessage)
+            showSupportMessage)
         {
             DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), Fade(GetColor(GuiGetStyle(DEFAULT, BACKGROUND_COLOR)), 0.8f));
         }
@@ -1156,15 +1154,9 @@ static rpbConfigData LoadProjectData(const char *fileName)
         rini_data config = { 0 };
         config = rini_load(fileName);
         
-        for (int i = 0; i < config.count; i++)
-        {
-            printf("Config: %s\n", config.values[i].key);
-        }
-
         // Process/organize config data for our application
         data.entries = (rpbEntry *)RL_CALLOC(config.count, sizeof(rpbEntry));
         data.entryCount = config.count;
-        printf("Project values count %i\n", data.entryCount);
 
         for (int i = 0; i < data.entryCount; i++)
         {
@@ -1177,14 +1169,9 @@ static rpbConfigData LoadProjectData(const char *fileName)
             int categoryLen = 0; //TextFindIndex(config.values[i].key, "_");
             for (int c = 0; c < 128; c++) { if (config.values[i].key[c] != '_') categoryLen++; else break; }
             strncpy(category, config.values[i].key, categoryLen);
-            
             strcpy(data.entries[i].name, TextReplace(config.values[i].key + categoryLen + 1, "_", " "));
 
-            if (TextIsEqual(category, "PROJECT")) 
-            {
-                data.entries[i].category = RPB_CAT_PROJECT;
-                printf("PROJECT entry: %s\n", data.entries[i].name);
-            }
+            if (TextIsEqual(category, "PROJECT")) data.entries[i].category = RPB_CAT_PROJECT;
             else if (TextIsEqual(category, "BUILD")) data.entries[i].category = RPB_CAT_BUILD;
             else if (TextIsEqual(category, "PLATFORM"))
             {
