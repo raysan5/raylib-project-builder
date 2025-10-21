@@ -4,10 +4,10 @@ A simple and easy-to-use raylib project builder
 
 ## raylib project builder Features
 
- - Key feature 01
- - Key feature 02
- - Key feature 03
- - Command-line support batch processing
+ - Multiple platforms building supported: Windows, Linux, Web
+ - Configure project build settings in a visual way
+ - Automatic assets validation system 
+ - Command-line support for autoamted building
  - **Completely portable (single-file, no-dependencies)**
  
 ## raylib project builder Screenshot
