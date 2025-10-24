@@ -412,8 +412,6 @@ int main(int argc, char *argv[])
 
     // Set raygui style to start with
     // WARNING: It must be aligned with mainToolbarState.visualStyleActive
-    mainToolbarState.visualStyleActive = 4;
-    mainToolbarState.prevVisualStyleActive = 4;
     GuiLoadStyleGenesis();
     //-----------------------------------------------------------------------------------
 
@@ -594,11 +592,11 @@ static void UpdateDrawFrame(void)
 
         switch (mainToolbarState.visualStyleActive)
         {
-            case 0: GuiLoadStyleCyber(); break;
-            case 1: GuiLoadStyleLavanda(); break;
-            case 2: GuiLoadStyleTerminal(); break;
-            case 3: GuiLoadStyleAmber(); break;
-            case 4: GuiLoadStyleGenesis(); break;
+            case 0: GuiLoadStyleGenesis(); break;
+            case 1: GuiLoadStyleCyber(); break;
+            case 2: GuiLoadStyleLavanda(); break;
+            case 3: GuiLoadStyleTerminal(); break;
+            case 4: GuiLoadStyleAmber(); break;
             default: break;
         }
 

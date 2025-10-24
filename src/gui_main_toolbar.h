@@ -196,7 +196,7 @@ void GuiMainToolbar(GuiMainToolbarState *state)
     GuiSetStyle(COMBOBOX, COMBO_BUTTON_WIDTH, 40);
     GuiSetTooltip("Select visual UI style");
     GuiComboBox((Rectangle){ state->anchorVisuals.x + 8 + 48, state->anchorVisuals.y + 8, 120, 24 }, 
-        "Cyber;Lavanda;Terminal;Amber;Genesis", &state->visualStyleActive);
+        "Genesis;Cyber;Lavanda;Terminal;Amber", &state->visualStyleActive);
     GuiSetStyle(COMBOBOX, COMBO_BUTTON_WIDTH, 32);
 
     // Info options
