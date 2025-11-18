@@ -1,6 +1,6 @@
 /*******************************************************************************************
 *
-*   raylib project builder v1.0 - A simple and easy-to-use raylib project builder
+*   rpb v1.0 - A simple and easy-to-use raylib projects builder
 *
 *   FEATURES:
 *       - Feature 01
@@ -74,8 +74,8 @@
 #define TOOL_NAME                   "raylib project builder"
 #define TOOL_SHORT_NAME             "rpb"
 #define TOOL_VERSION                "1.0"
-#define TOOL_DESCRIPTION            "A simple and easy-to-use raylib project builder"
-#define TOOL_DESCRIPTION_BREAK      "A simple and easy-to-use\nraylib project builder"
+#define TOOL_DESCRIPTION            "A simple and easy-to-use raylib projects builder"
+#define TOOL_DESCRIPTION_BREAK      "A simple and easy-to-use\nraylib projects builder"
 #define TOOL_RELEASE_DATE           "Nov.2025"
 #define TOOL_LOGO_COLOR             0x7c7c80ff
 #define TOOL_CONFIG_FILENAME        "rpb.ini"
