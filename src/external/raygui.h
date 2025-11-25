@@ -77,7 +77,7 @@
 *
 *           static unsigned int guiStyle[RAYGUI_MAX_CONTROLS*(RAYGUI_MAX_PROPS_BASE + RAYGUI_MAX_PROPS_EXTENDED)];
 *
-*       guiStyle size is by default: 16*(16 + 8) = 384*4 = 1536 bytes = 1.5 KB
+*       guiStyle size is by default: 16*(16 + 8) = 384 int = 384*4 bytes = 1536 bytes = 1.5 KB
 *
 *       Note that the first set of BASE properties (by default guiStyle[0..15]) belong to the generic style
 *       used for all controls, when any of those base values is set, it is automatically populated to all
@@ -141,7 +141,7 @@
 *           Draw text bounds rectangles for debug
 *
 *   VERSIONS HISTORY:
-*       5.0-dev (2025)    Current dev version...
+*       5.0 (xx-Nov-2025) ADDED: Support up to 32 controls (v500)
 *                         ADDED: guiControlExclusiveMode and guiControlExclusiveRec for exclusive modes
 *                         ADDED: GuiValueBoxFloat()
 *                         ADDED: GuiDropdonwBox() properties: DROPDOWN_ARROW_HIDDEN, DROPDOWN_ROLL_UP
@@ -271,7 +271,7 @@
 *       0.8 (27-Aug-2015) Initial release. Implemented by Kevin Gato, Daniel Nicolás and Ramon Santamaria
 *
 *   DEPENDENCIES:
-*       raylib 5.0  - Inputs reading (keyboard/mouse), shapes drawing, font loading and text drawing
+*       raylib 5.6-dev  - Inputs reading (keyboard/mouse), shapes drawing, font loading and text drawing
 *
 *   STANDALONE MODE:
 *       By default raygui depends on raylib mostly for the inputs and the drawing functionality but that dependency can be disabled
@@ -2499,10 +2499,10 @@ int GuiDropdownBox(Rectangle bounds, const char *text, int *active, bool editMod
 int GuiTextBox(Rectangle bounds, char *text, int textSize, bool editMode)
 {
     #if !defined(RAYGUI_TEXTBOX_AUTO_CURSOR_COOLDOWN)
-        #define RAYGUI_TEXTBOX_AUTO_CURSOR_COOLDOWN  30        // Frames to wait for autocursor movement
+        #define RAYGUI_TEXTBOX_AUTO_CURSOR_COOLDOWN  20        // Frames to wait for autocursor movement
     #endif
     #if !defined(RAYGUI_TEXTBOX_AUTO_CURSOR_DELAY)
-        #define RAYGUI_TEXTBOX_AUTO_CURSOR_DELAY      2        // Frames delay for autocursor movement
+        #define RAYGUI_TEXTBOX_AUTO_CURSOR_DELAY      1        // Frames delay for autocursor movement
     #endif
 
     int result = 0;
@@ -3058,10 +3058,8 @@ int GuiValueBox(Rectangle bounds, const char *text, int *value, int minValue, in
             {
                 if (textValue[0] == '-')
                 {
-                    for (int i = 0 ; i < keyCount; i++)
-                    {
-                        textValue[i] = textValue[i + 1];
-                    }
+                    for (int i = 0 ; i < keyCount; i++) textValue[i] = textValue[i + 1];
+
                     keyCount--;
                     valueHasChanged = true;
                 }
@@ -4410,7 +4408,7 @@ void GuiLoadStyle(const char *fileName)
 
             if (fileDataSize > 0)
             {
-                unsigned char *fileData = (unsigned char *)RAYGUI_MALLOC(fileDataSize*sizeof(unsigned char));
+                unsigned char *fileData = (unsigned char *)RAYGUI_CALLOC(fileDataSize, sizeof(unsigned char));
                 fread(fileData, sizeof(unsigned char), fileDataSize, rgsFile);
 
                 GuiLoadStyleFromMemory(fileData, fileDataSize);
@@ -4618,10 +4616,10 @@ char **GuiLoadIcons(const char *fileName, bool loadIconsName)
         {
             if (loadIconsName)
             {
-                guiIconsName = (char **)RAYGUI_MALLOC(iconCount*sizeof(char **));
+                guiIconsName = (char **)RAYGUI_CALLOC(iconCount, sizeof(char *));
                 for (int i = 0; i < iconCount; i++)
                 {
-                    guiIconsName[i] = (char *)RAYGUI_MALLOC(RAYGUI_ICON_MAX_NAME_LENGTH);
+                    guiIconsName[i] = (char *)RAYGUI_CALLOC(RAYGUI_ICON_MAX_NAME_LENGTH, sizeof(char));
                     fread(guiIconsName[i], 1, RAYGUI_ICON_MAX_NAME_LENGTH, rgiFile);
                 }
             }
