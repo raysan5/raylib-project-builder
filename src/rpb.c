@@ -86,6 +86,9 @@
 
 #include "raylib.h"
 
+#define RPCONFIG_IMPLEMENTATION
+#include "rpconfig.h"                // Project config data types and functionality (shared by [rpc] and [rpb] tools)
+
 #if defined(PLATFORM_WEB)
     #define CUSTOM_MODAL_DIALOGS            // Force custom modal dialogs usage
     #include <emscripten/emscripten.h>      // Emscripten library - LLVM to JavaScript compiler
@@ -159,60 +162,7 @@ bool __stdcall FreeConsole(void);           // Close console from code (kernel32
 // Types and Structures Definition
 //----------------------------------------------------------------------------------
 
-typedef enum {
-    RPB_CAT_PROJECT = 0,
-    RPB_CAT_BUILD,
-    RPB_CAT_PLATFORM,
-    RPB_CAT_DEPLOY,
-    RPB_CAT_IMAGERY,
-    RPB_CAT_RAYLIB
-} rpbEntryCategory;
-
-typedef enum {
-    RPB_TYPE_BOOL = 0,
-    RPB_TYPE_VALUE,
-    RPB_TYPE_TEXT,
-    RPB_TYPE_TEXT_FILE,
-    RPB_TYPE_TEXT_PATH,
-} rpbEntryType;
-
-typedef enum {
-    RPB_PLATFORM_WINDOWS = 0,
-    RPB_PLATFORM_LINUX,
-    RPB_PLATFORM_MACOS,
-    RPB_PLATFORM_HTML5,
-    RPB_PLATFORM_ANDROID,
-    RPB_PLATFORM_DRM,
-    RPB_PLATFORM_SWITCH,
-    RPB_PLATFORM_DREAMCAST,
-    RPB_PLATFORM_FREEBSD,
-    RPB_PLATFORM_ANY
-} rpbPlatform;
-
-// Config entry data type
-// NOTE: Useful to automatice UI generation,
-// every data entry is read from rpc config file
-typedef struct rpbEntry {
-    char key[64];       // Entry key (as read from .rpc)
-    char name[64];      // Entry name label for display, computed from key
-    int category;       // Entry category: PROJECT, BUILDING, PLATFORM, DEPLOY, IMAGERY, raylib
-    int platform;       // Entry platform-specific
-    int type;           // Entry type of data: VALUE (int), BOOL (int), TEXT (string), FILE (string-file), PATH (string-path)
-    int value;          // Entry value (type: VALUE, BOOL)
-    // TODO: WARNING: rini expects a maximum len for text of 256 chars, multiple files can be longer that that
-    char text[256];     // Entry text data (type: TEXT, FILE, PATH) - WARNING: It can include multiple paths
-    char desc[128];     // Entry data description, useful for tooltips
-    bool multi;         // Entry data contains multiple values, separated by ';'
-
-    // Transient data
-    bool editMode;      // Edit mode required for UI text control
-} rpbEntry;
-
-// Config options data
-typedef struct rpbConfigData {
-    int entryCount;     // Number of entries
-    rpbEntry *entries;  // Entries
-} rpbConfigData;
+// NOTE: [rpc] and [rpb] tools shared data types and functions are provided by rpcdata.h
 
 //----------------------------------------------------------------------------------
 // Global Variables Definition
@@ -242,14 +192,21 @@ static bool platformEnabled[MAX_PLATFORMS] = { 0 };
 static int currentPlatform = 0;
 
 static int currentTab = 0;
-const char *tabText[6] = {"#176#PROJECT SETTINGS", "#140#BUILD SETTINGS", "#181#PLATFORM SETTINGS", "#178#DEPLOY OPTIONS", "#12#IMAGERY EDITION", "#133#raylib CONFIG" };
+const char *tabText[6] = {
+    "#176#PROJECT SETTINGS", 
+    "#140#BUILD SETTINGS", 
+    "#181#PLATFORM SETTINGS", 
+    "#178#DEPLOY OPTIONS", 
+    "#12#IMAGERY EDITION", 
+    "#133#raylib CONFIG" 
+};
 
 static Vector2 panelScroll = { 0 };
 static Rectangle panelView = { 0 };
 
 // Basic program variables
 //----------------------------------------------------------------------------------
-static rpbConfigData project = { 0 };       // rpb project config data
+static rpcProjectConfigRaw project = { 0 };       // rpb project config data
 
 static bool showMessageReset = false;       // Show message: reset
 static bool showMessageExit = false;        // Show message: exit (quit)
@@ -326,8 +283,7 @@ static void ProcessCommandLine(int argc, char *argv[]);     // Process command l
 static void UpdateDrawFrame(void);                          // Update and draw one frame
 
 // Load/Save/Export data functions
-static rpbConfigData LoadProjectData(const char *fileName); // Load project config data data from .rpc file
-static void SaveProjectData(rpbConfigData data, const char *fileName); // Save project config data to .rpc file
+//...
 
 // Auxiliar functions
 //...
@@ -404,7 +360,7 @@ int main(int argc, char *argv[])
     texPlatforms = LoadTexture("resources/platforms.png");
     SetTextureFilter(texPlatforms, TEXTURE_FILTER_BILINEAR);
 
-    project = LoadProjectData("resources/project_template.rpc");
+    project = LoadProjectConfigRaw("resources/project_template.rpc");
 
     // GUI: Main toolbar panel (file and visualization)
     //-----------------------------------------------------------------------------------
@@ -451,7 +407,7 @@ int main(int argc, char *argv[])
     //-------------------------------------------------------------------------------------
     if ((inFileName[0] != '\0') && (IsFileExtension(inFileName, ".rpc")))
     {
-        rpbConfigData data = LoadProjectData(inFileName);    // Load tool data from file
+        rpcProjectConfigRaw data = LoadProjectConfigRaw(inFileName);    // Load tool data from file
 
         // TODO: Do something with loaded data
     }
@@ -918,7 +874,6 @@ static void UpdateDrawFrame(void)
                 // Save file: outFileName
                 // Check for valid extension and make sure it is
                 if ((GetFileExtension(outFileName) == NULL) || !IsFileExtension(outFileName, ".rpc")) strcat(outFileName, ".rpc\0");
-                SaveProjectData(project, outFileName);
 
             #if defined(PLATFORM_WEB)
                 // Download file from MEMFS (emscripten memory filesystem)
@@ -1142,163 +1097,7 @@ static void ProcessCommandLine(int argc, char *argv[])
 //--------------------------------------------------------------------------------------------
 // Load/Save/Export functions
 //--------------------------------------------------------------------------------------------
-// Load project config data data from .rpc file
-static rpbConfigData LoadProjectData(const char *fileName)
-{
-    rpbConfigData data = { 0 };
-
-    if (FileExists(fileName))
-    {
-        rini_data config = { 0 };
-        config = rini_load(fileName);
-
-        // Process/organize config data for our application
-        data.entries = (rpbEntry *)RL_CALLOC(config.count, sizeof(rpbEntry));
-        data.entryCount = config.count;
-
-        for (int i = 0; i < data.entryCount; i++)
-        {
-            strcpy(data.entries[i].key, config.values[i].key);
-            strcpy(data.entries[i].desc, config.values[i].desc);
-            data.entries[i].platform = RPB_PLATFORM_ANY;
-
-            // Category is parsed from first word on key
-            char category[32] = { 0 };
-            int categoryLen = 0; //TextFindIndex(config.values[i].key, "_");
-            for (int c = 0; c < 128; c++) { if (config.values[i].key[c] != '_') categoryLen++; else break; }
-            strncpy(category, config.values[i].key, categoryLen);
-            strcpy(data.entries[i].name, TextReplace(config.values[i].key + categoryLen + 1, "_", " "));
-
-            if (TextIsEqual(category, "PROJECT")) data.entries[i].category = RPB_CAT_PROJECT;
-            else if (TextIsEqual(category, "BUILD")) data.entries[i].category = RPB_CAT_BUILD;
-            else if (TextIsEqual(category, "PLATFORM"))
-            {
-                data.entries[i].category = RPB_CAT_PLATFORM;
-
-                // Get platform from key
-                char platform[32] = { 0 };
-                int platformLen = 0;//TextFindIndex(config.values[i].key + categoryLen + 1, "_");
-                for (int c = 0; c < 128; c++) { if (config.values[i].key[c + categoryLen + 1] != '_') platformLen++; else break; }
-                memcpy(platform, config.values[i].key + categoryLen + 1, platformLen);
-
-                if (TextIsEqual(platform, "WINDOWS")) data.entries[i].platform = RPB_PLATFORM_WINDOWS;
-                else if (TextIsEqual(platform, "LINUX")) data.entries[i].platform = RPB_PLATFORM_LINUX;
-                else if (TextIsEqual(platform, "MACOS")) data.entries[i].platform = RPB_PLATFORM_MACOS;
-                else if (TextIsEqual(platform, "HTML5")) data.entries[i].platform = RPB_PLATFORM_HTML5;
-                else if (TextIsEqual(platform, "ANDROID")) data.entries[i].platform = RPB_PLATFORM_ANDROID;
-                else if (TextIsEqual(platform, "DRM")) data.entries[i].platform = RPB_PLATFORM_DRM;
-                else if (TextIsEqual(platform, "SWITCH")) data.entries[i].platform = RPB_PLATFORM_SWITCH;
-                else if (TextIsEqual(platform, "DREAMCAST")) data.entries[i].platform = RPB_PLATFORM_DREAMCAST;
-                else if (TextIsEqual(platform, "FREEBSD")) data.entries[i].platform = RPB_PLATFORM_FREEBSD;
-
-                memset(data.entries[i].name, 0, 64);
-                strcpy(data.entries[i].name, config.values[i].key + categoryLen + platformLen + 2);
-            }
-            else if (TextIsEqual(category, "DEPLOY")) data.entries[i].category = RPB_CAT_DEPLOY;
-            else if (TextIsEqual(category, "IMAGERY")) data.entries[i].category = RPB_CAT_IMAGERY;
-            else if (TextIsEqual(category, "RAYLIB")) data.entries[i].category = RPB_CAT_RAYLIB;
-        }
-
-        for (int i = 0; i < data.entryCount; i++)
-        {
-            // Type is parsed from key and value
-            if (!config.values[i].isText)
-            {
-                if (TextFindIndex(data.entries[i].key, "_FLAG")) data.entries[i].type = RPB_TYPE_BOOL;
-                else data.entries[i].type = RPB_TYPE_VALUE;
-
-                // Get the value
-                data.entries[i].value = TextToInteger(config.values[i].text);
-            }
-            else // Value is text
-            {
-                if (TextFindIndex(data.entries[i].key, "_FILES") > 0)
-                {
-                    // TODO: How we check if files list includes multiple files,
-                    // checking for ';' separator???
-                    data.entries[i].type = RPB_TYPE_TEXT_FILE;
-                    data.entries[i].multi = true;
-                }
-                else if (TextFindIndex(data.entries[i].key, "_FILE")  > 0) data.entries[i].type = RPB_TYPE_TEXT_FILE;
-                else if (TextFindIndex(data.entries[i].key, "_PATH")  > 0) data.entries[i].type = RPB_TYPE_TEXT_PATH;
-                else
-                {
-                    data.entries[i].type = RPB_TYPE_TEXT;
-                }
-
-                strcpy(data.entries[i].text, config.values[i].text);
-            }
-        }
-
-        rini_unload(&config);
-    }
-
-    return data;
-}
-
-// Save project config data to .rpc file
-// NOTE: Same function as [rpc] tool but but adding more data
-static void SaveProjectData(rpbConfigData data, const char *fileName)
-{
-    rini_data config = rini_load(NULL);   // Create empty config with 32 entries (RINI_MAX_CONFIG_CAPACITY)
-
-    // Define header comment lines
-    rini_set_comment_line(&config, NULL);   // Empty comment line, but including comment prefix delimiter
-    rini_set_comment_line(&config, "raylib project creator - project definition file");
-    rini_set_comment_line(&config, NULL);
-    rini_set_comment_line(&config, "This definition file contains all required info to descrive a project");
-    rini_set_comment_line(&config, "and allow building it for multiple platforms");
-    rini_set_comment_line(&config, NULL);
-    rini_set_comment_line(&config, "This file follow certain conventions to be able to display the information in");
-    rini_set_comment_line(&config, "an easy-configurable UI manner when loaded through [raylib project builder]");
-    rini_set_comment_line(&config, "CONVENTIONS:");
-    rini_set_comment_line(&config, "   - ID containing [_FLAG_]: Value is considered a boolean, it displays with a [GuiCheckBox]");
-    rini_set_comment_line(&config, "   - ID do not contain "": Value is considered as an integer, it displays as [GuiValueBox]");
-    rini_set_comment_line(&config, "   - ID ends with _FILE or _FILES: Value is considered as a text file path, it displays as [GuiTextBox] with a [BROWSE-File] button");
-    rini_set_comment_line(&config, "   - ID ends with _PATH: Value is considered as a text directory path, it displays as [GuiTextBox] with a [BROWSE-Dir] button");
-    rini_set_comment_line(&config, NULL);
-    rini_set_comment_line(&config, "NOTE: The comments/description for each entry is used as tooltip when editing the entry on [rpb]");
-    rini_set_comment_line(&config, "\n");
-
-    /*
-    char key[64];       // Entry key (as read from .rpc)
-    char name[64];      // Entry name label for display, computed from key
-    int category;       // Entry category: PROJECT, BUILDING, PLATFORM, DEPLOY, IMAGERY, raylib
-    int platform;       // Entry platform-specific
-    int type;           // Entry type of data: VALUE (int), BOOL (int), TEXT (string), FILE (string-file), PATH (string-path)
-    int value;          // Entry value (type: VALUE, BOOL)
-    // TODO: WARNING: rini expects a maximum len for text of 256 chars, multiple files can be longer that that
-    char text[256];     // Entry text data (type: TEXT, FILE, PATH) - WARNING: It can include multiple paths
-    char desc[128];     // Entry data description, useful for tooltips
-    */
-
-    // We are saving data into file organized by categories and platforms,
-    // independently of the format it was originally loaded (in case of manual edition)
-
-    // Saving PROJECT category data
-    rini_set_comment_line(&config, "Project settings");
-    rini_set_comment_line(&config, "------------------------------------------------------------------------------------");
-    for (int i = 0; i < data.entryCount; i++)
-    {
-        rpbEntry *entry = &data.entries[i];
-
-        if (entry->category == RPB_CAT_PROJECT)
-        {
-            switch (entry->type)
-            {
-                case RPB_TYPE_BOOL:
-                case RPB_TYPE_VALUE: rini_set_value(&config, entry->key, entry->value, entry->desc); break;
-                case RPB_TYPE_TEXT:
-                case RPB_TYPE_TEXT_FILE:
-                case RPB_TYPE_TEXT_PATH: rini_set_value_text(&config, entry->key, entry->text, entry->desc); break;
-                default: break;
-            }
-        }
-    }
-
-    rini_save(config, fileName);
-    rini_unload(&config);
-}
+// NOTE: rpconfig.h provides required functions, shared by [rpc] and [rpb] tools
 
 //--------------------------------------------------------------------------------------------
 // Auxiliar functions (utilities)
