@@ -95,6 +95,7 @@
     #include <emscripten/html5.h>           // Emscripten HTML5 browser functionality (emscripten_set_beforeunload_callback)
 #endif
 
+#define RAYGUI_TABBAR_ITEM_WIDTH    200
 #define RAYGUI_IMPLEMENTATION
 #include "raygui.h"                         // Required for: IMGUI controls
 
@@ -171,12 +172,15 @@ static const char *toolName = TOOL_NAME;
 static const char *toolVersion = TOOL_VERSION;
 static const char *toolDescription = TOOL_DESCRIPTION;
 
-static const int screenWidth = 960;        // Default screen width (at initialization)
-static const int screenHeight = 660;        // Default screen height (at initialization)
+static const int screenWidth = 1280;        // Default screen width (at initialization)
+static const int screenHeight = 860;       // Default screen height (at initialization)
 
 // NOTE: Max length depends on OS, in Windows MAX_PATH = 256
-static char inFileName[512] = { 0 };        // Input file name (required in case of drag & drop over executable)
-static char outFileName[512] = { 0 };       // Output file name (required for file save/export)
+static char inFileName[256] = { 0 };        // Input file name (required in case of drag & drop over executable)
+static char outFileName[256] = { 0 };       // Output file name (required for file save/export)
+
+static char inFilePath[256] = { 0 };        // Input file path
+static char inDirectoryPath[256] = { 0 };   // Input directory path
 
 static int framesCounter = 0;               // General pourpose frames counter (not used)
 static Vector2 mousePoint = { 0 };          // Mouse position
@@ -268,8 +272,11 @@ static bool windowExitActive = false;
 // GUI: Custom file dialogs
 //-----------------------------------------------------------------------------------
 static bool showLoadFileDialog = false;
+static bool showLoadDirectoryDialog = false;
 static bool showSaveFileDialog = false;
 static bool showExportFileDialog = false;
+
+static int projectEditProperty = -1;
 //-----------------------------------------------------------------------------------
 
 //----------------------------------------------------------------------------------
@@ -418,6 +425,10 @@ int main(int argc, char *argv[])
     //-------------------------------------------------------------------------------------
 #endif
 
+    // Initialize inout file paths to working directory
+    strcpy(inFileName, GetWorkingDirectory());
+    strcpy(inFilePath, GetWorkingDirectory());
+
 #if defined(PLATFORM_WEB)
     emscripten_set_main_loop(UpdateDrawFrame, 0, 1);
 #else
@@ -527,6 +538,7 @@ static void UpdateDrawFrame(void)
         else closeWindow = true;
     #else
         else if (showLoadFileDialog) showLoadFileDialog = false;
+        else if (showLoadDirectoryDialog) showLoadDirectoryDialog = false;
         else if (showSaveFileDialog) showSaveFileDialog = false;
         else if (showExportFileDialog) showExportFileDialog = false;
     #endif
@@ -611,6 +623,7 @@ static void UpdateDrawFrame(void)
         showMessageExit ||
         showMessageReset ||
         showLoadFileDialog ||
+        showLoadDirectoryDialog ||
         showExportFileDialog ||
         showSupportMessage)
     {
@@ -668,7 +681,7 @@ static void UpdateDrawFrame(void)
         {
             if (project.entries[i].category == currentTab) categoryHeight += (24 + 8);
         }
-        if ((categoryHeight > (GetScreenHeight() - 188 - 24)) && (currentTab != RPB_CAT_PLATFORM))
+        if ((categoryHeight > (GetScreenHeight() - 188 - 24)) && (currentTab != RPC_CAT_PLATFORM))
         {
             GuiScrollPanel((Rectangle){ 0, 188, GetScreenWidth(), GetScreenHeight() - 188 - 24 }, NULL,
                 (Rectangle){ 0, 188, GetScreenWidth() - 16, categoryHeight }, &panelScroll, &panelView);
@@ -685,43 +698,60 @@ static void UpdateDrawFrame(void)
         {
             if (currentTab == project.entries[i].category)
             {
-                if ((project.entries[i].platform != RPB_PLATFORM_ANY) && (project.entries[i].platform != currentPlatform)) continue;
+                if ((project.entries[i].platform != RPC_PLATFORM_ANY) && (project.entries[i].platform != currentPlatform)) continue;
 
-                if (project.entries[i].type != RPB_TYPE_BOOL) GuiLabel((Rectangle){ 24, 52 + 96 + 12 + 36 + (24 + 8)*k + panelScroll.y, 180, 24 }, TextFormat("%s:", project.entries[i].name));
+                if (project.entries[i].type != RPC_TYPE_BOOL) GuiLabel((Rectangle){ 24, 52 + 96 + 12 + 36 + (24 + 8)*k + panelScroll.y, 180, 24 }, TextFormat("%s:", project.entries[i].name));
+
+                int descWidth = 460;
+                int textWidth = GetScreenWidth() - (24 + 180 + 12 + descWidth + 24);
 
                 GuiSetStyle(TEXTBOX, TEXT_ALIGNMENT, TEXT_ALIGN_LEFT);
                 switch (project.entries[i].type)
                 {
-                    case RPB_TYPE_BOOL:
+                    case RPC_TYPE_BOOL:
                     {
                         bool checked = (bool)project.entries[i].value;
                         GuiCheckBox((Rectangle){ 24 + 2, 52 + 96 + 12 + 36 + (24 + 8)*k + 2 + panelScroll.y, 20, 20 }, project.entries[i].name + 5, &checked);
                         project.entries[i].value = (checked? 1 : 0);
                     } break;
-                    case RPB_TYPE_VALUE:
+                    case RPC_TYPE_VALUE:
                     {
-                        if (GuiValueBox((Rectangle){ 24 + 180, 52 + 96 + 12 + 36 + (24 + 8)*k + panelScroll.y, 180, 24 }, NULL, &project.entries[i].value, 0, 1024, project.entries[i].editMode)) project.entries[i].editMode = !project.entries[i].editMode;
+                        if (GuiValueBox((Rectangle){ 24 + 180, 52 + 96 + 12 + 36 + (24 + 8)*k + panelScroll.y, 180, 24 }, 
+                            NULL, &project.entries[i].value, 0, 1024, project.entries[i].editMode)) project.entries[i].editMode = !project.entries[i].editMode;
                     } break;
-                    case RPB_TYPE_TEXT:
+                    case RPC_TYPE_TEXT:
                     {
-                        if (GuiTextBox((Rectangle){ 24 + 180, 52 + 96 + 12 + 36 + (24 + 8)*k + panelScroll.y, 400, 24 }, project.entries[i].text, 255, project.entries[i].editMode)) project.entries[i].editMode = !project.entries[i].editMode;
+                        if (GuiTextBox((Rectangle){ 24 + 180, 52 + 96 + 12 + 36 + (24 + 8)*k + panelScroll.y, textWidth, 24 }, 
+                            project.entries[i].text, 255, project.entries[i].editMode)) project.entries[i].editMode = !project.entries[i].editMode;
                     } break;
-                    case RPB_TYPE_TEXT_FILE:
+                    case RPC_TYPE_TEXT_FILE:
                     {
-                        if (GuiTextBox((Rectangle){ 24 + 180, 52 + 96 + 12 + 36 + (24 + 8)*k + panelScroll.y, 400 - 90, 24 }, project.entries[i].text, 255, project.entries[i].editMode)) project.entries[i].editMode = !project.entries[i].editMode;
-                        GuiButton((Rectangle){ 24 + 180 + 404 - 90, 52 + 96 + 12 + 36 + (24 + 8)*k + panelScroll.y, 86, 24 }, "#6#Browse");
+                        if (GuiTextBox((Rectangle){ 24 + 180, 52 + 96 + 12 + 36 + (24 + 8)*k + panelScroll.y, textWidth - 90, 24 }, 
+                            project.entries[i].text, 255, project.entries[i].editMode)) project.entries[i].editMode = !project.entries[i].editMode;
+                        if (GuiButton((Rectangle){ 24 + 180 + textWidth - 86, 52 + 96 + 12 + 36 + (24 + 8)*k + panelScroll.y, 86, 24 }, "#6#Browse"))
+                        {
+                            showLoadFileDialog = true;
+                            projectEditProperty = i;
+                        }
                     } break;
-                    case RPB_TYPE_TEXT_PATH:
+                    case RPC_TYPE_TEXT_PATH:
                     {
-                        if (GuiTextBox((Rectangle){ 24 + 180, 52 + 96 + 12 + 36 + (24 + 8)*k + panelScroll.y, 400 - 90, 24 }, project.entries[i].text, 255, project.entries[i].editMode)) project.entries[i].editMode = !project.entries[i].editMode;
-                        GuiButton((Rectangle){ 24 + 180 + 404 - 90, 52 + 96 + 12 + 36 + (24 + 8)*k + panelScroll.y, 86, 24 }, "#173#Browse");
+                        if (GuiTextBox((Rectangle){ 24 + 180, 52 + 96 + 12 + 36 + (24 + 8)*k + panelScroll.y, textWidth - 90, 24 }, 
+                            project.entries[i].text, 255, project.entries[i].editMode)) project.entries[i].editMode = !project.entries[i].editMode;
+                        if (GuiButton((Rectangle){ 24 + 180 + textWidth - 86, 52 + 96 + 12 + 36 + (24 + 8)*k + panelScroll.y, 86, 24 }, "#173#Browse"))
+                        {
+                            showLoadDirectoryDialog = true;
+                            projectEditProperty = i;
+                        }
                     } break;
                     default: break;
                 }
                 GuiSetStyle(TEXTBOX, TEXT_ALIGNMENT, TEXT_ALIGN_LEFT);
 
-                if (project.entries[i].type == RPB_TYPE_BOOL) GuiStatusBar((Rectangle){ 24 + 180, 52 + 96 + 12 + 36 + (24 + 8)*k + panelScroll.y, 320 + 412, 24 }, project.entries[i].desc);
-                else GuiStatusBar((Rectangle){ 24 + 180 + 412, 52 + 96 + 12 + 36 + (24 + 8)*k + panelScroll.y, 320, 24 }, project.entries[i].desc);
+                // Draw field description
+                if (project.entries[i].type == RPC_TYPE_BOOL)
+                    GuiStatusBar((Rectangle){ 24 + 180, 52 + 96 + 12 + 36 + (24 + 8)*k + panelScroll.y, (textWidth + descWidth + 12), 24 }, project.entries[i].desc);
+                else GuiStatusBar((Rectangle){ 24 + 180 + textWidth + 12, 52 + 96 + 12 + 36 + (24 + 8)*k + panelScroll.y, descWidth, 24 }, project.entries[i].desc);
 
                 k++;
             }
@@ -752,6 +782,7 @@ static void UpdateDrawFrame(void)
             showMessageExit ||
             showMessageReset ||
             showLoadFileDialog ||
+            showLoadDirectoryDialog ||
             showSaveFileDialog ||
             showExportFileDialog ||
             showSupportMessage)
@@ -842,7 +873,7 @@ static void UpdateDrawFrame(void)
 
         // GUI: Load File Dialog (and loading logic)
         //----------------------------------------------------------------------------------------
-        if (showLoadFileDialog)
+        if (showLoadFileDialog && !showLoadDirectoryDialog)
         {
 #if defined(CUSTOM_MODAL_DIALOGS)
             int result = GuiFileDialog(DIALOG_MESSAGE, "Load file...", inFileName, "Ok", "Just drag and drop your .rpc file!");
@@ -852,11 +883,32 @@ static void UpdateDrawFrame(void)
             if (result == 1)
             {
                 // TODO: Load file: inFileName
+                rpcProjectConfigRaw project = LoadProjectConfigRaw(inFileName);
 
                 SetWindowTitle(TextFormat("%s v%s - %s", toolName, toolVersion, GetFileName(inFileName)));
             }
 
             if (result >= 0) showLoadFileDialog = false;
+        }
+        //----------------------------------------------------------------------------------------
+
+        // GUI: Load Directory Dialog (and loading logic)
+        //----------------------------------------------------------------------------------------
+        if (showLoadDirectoryDialog && !showLoadFileDialog)
+        {
+#if defined(CUSTOM_MODAL_DIALOGS)
+            int result = GuiFileDialog(DIALOG_MESSAGE, "Load path...", inFilePath, "Ok", "Drag and drop your files");
+#else
+            int result = GuiFileDialog(DIALOG_OPEN_DIRECTORY, "Load path...", inFilePath, "", "");
+#endif
+            if (result == 1)
+            {
+                // Update required property with selected path
+                memset(project.entries[projectEditProperty].text, 0, 256);
+                strcpy(project.entries[projectEditProperty].text, inFilePath);
+            }
+
+            if (result >= 0) showLoadDirectoryDialog = false;
         }
         //----------------------------------------------------------------------------------------
 
@@ -874,6 +926,7 @@ static void UpdateDrawFrame(void)
                 // Save file: outFileName
                 // Check for valid extension and make sure it is
                 if ((GetFileExtension(outFileName) == NULL) || !IsFileExtension(outFileName, ".rpc")) strcat(outFileName, ".rpc\0");
+                SaveProjectConfigRaw(project, outFileName, 0);
 
             #if defined(PLATFORM_WEB)
                 // Download file from MEMFS (emscripten memory filesystem)
