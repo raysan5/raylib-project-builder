@@ -473,12 +473,12 @@ void rini_save(rini_data data, const char *file_name)
             }
             else
             {
-                memset(valuestr, 0, 130);
+                memset(valuestr, 0, RINI_MAX_TEXT_SIZE + 2);
 #if RINI_USE_TEXT_QUOTATION_MARKS
                 // Add quotation marks if required
                 if (data.values[i].isText) snprintf(valuestr, 130, "%c%s%c", RINI_VALUE_QUOTATION_MARKS, data.values[i].text, RINI_VALUE_QUOTATION_MARKS);
 #else
-                snprintf(valuestr, 130, "%s", data.values[i].text);
+                snprintf(valuestr, RINI_MAX_TEXT_SIZE + 2, "%s", data.values[i].text);
 #endif
                 fprintf(rini_file, "%-*s %c %-*s %c %s\n", RINI_KEY_SPACING, data.values[i].key, RINI_VALUE_DELIMITER,
                     RINI_VALUE_SPACING, data.values[i].isText? valuestr : data.values[i].text,
@@ -506,7 +506,7 @@ char *rini_save_to_memory(rini_data data)
     memset(text, 0, RINI_MAX_TEXT_FILE_SIZE);
     int offset = 0;
 
-    char valuestr[128 + 2] = { 0 }; // Useful for text processing, adding quotation marks if required
+    char valuestr[RINI_MAX_TEXT_FILE_SIZE + 2] = { 0 }; // Useful for text processing, adding quotation marks if required
 
     for (unsigned int i = 0; i < data.count; i++)
     {
@@ -517,12 +517,12 @@ char *rini_save_to_memory(rini_data data)
         }
         else
         {
-            memset(valuestr, 0, 130);
+            memset(valuestr, 0, RINI_MAX_TEXT_FILE_SIZE + 2);
 #if RINI_USE_TEXT_QUOTATION_MARKS
             // Add quotation marks if required
             if (data.values[i].isText) snprintf(valuestr, 130, "%c%s%c", RINI_VALUE_QUOTATION_MARKS, data.values[i].text, RINI_VALUE_QUOTATION_MARKS);
 #else
-            snprintf(valuestr, 130, "%s", data.values[i].text);
+            snprintf(valuestr, RINI_MAX_TEXT_FILE_SIZE + 2, "%s", data.values[i].text);
 #endif
             offset += snprintf(text + offset, RINI_MAX_LINE_SIZE, "%-*s %c %-*s %c %s\n", RINI_KEY_SPACING, data.values[i].key, RINI_VALUE_DELIMITER,
                     RINI_VALUE_SPACING, data.values[i].isText? valuestr : data.values[i].text,
@@ -639,23 +639,6 @@ int rini_set_comment_line(rini_data *data, const char *comment)
 
     return result;
 }
-
-/*
-// Set custom text line
-// WARNING: Every entry follows spacing rules, not possible a completely custom line
-int rini_set_custom_line(rini_data *data, const char *text)
-{
-    int result = 0;
-
-    data->values[data->count].key[0] = '\0';
-    for (int i = 0; (i < RINI_MAX_TEXT_SIZE) && (text[i] != '\0'); i++) data->values[data->count].text[i] = text[i];
-    data->values[data->count].desc[0] = '\0';
-    data->values[data->count].isText = true;
-    data->count++;
-
-    return result;
-}
-*/
 
 // Set value and description for existing key or create a new entry
 int rini_set_value(rini_data *data, const char *key, int value, const char *desc)
