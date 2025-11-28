@@ -696,7 +696,7 @@ static void UpdateDrawFrame(void)
 
         for (int i = 0, k = 0; i < project.entryCount; i++)
         {
-            if (currentTab == project.entries[i].category)
+            if ((currentTab + 1) == project.entries[i].category)
             {
                 if ((project.entries[i].platform != RPC_PLATFORM_ANY) && (project.entries[i].platform != currentPlatform)) continue;
 
