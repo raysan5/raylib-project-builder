@@ -45,7 +45,7 @@ RAYLIB_OPENGL_VERSION                   "3.3"                               # Op
 #------------------------------------------------------------------------------------
 
 # Build settings
-# General settings (common to all platforms)
+# NOTE: General settings, common to all platforms
 #------------------------------------------------------------------------------------
 BUILD_OUTPUT_PATH                       "path/to/output"                    # Build output path
 
@@ -110,16 +110,13 @@ DEPLOY_FLAG_INCUDE_README               1                                   # Fl
 DEPLOY_README_FILE                      "path/to/file/README.md"            # Project README file path, contains product information
 DEPLOY_FLAG_INCUDE_EULA                 1                                   # Flag: request including EULA file on package (vs LICENSE file for FOSS)
 DEPLOY_EULA_FILE                        "path/to/file/EULA.txt"             # Project EULA (End-User-License-Agreement) file path
-
-# TODO: Itchio, Steam, resources-packaging, installer creation tooling and options...
 #------------------------------------------------------------------------------------
 
-# Imagery edition and generation
+# Imagery settings
+# NOTE: Useful for project distribution on several stores
 #------------------------------------------------------------------------------------
 IMAGERY_LOGO_FILE                       "path/to/file/logo.png"             # Project logo image, useful for imagery generation
 IMAGERY_SPLASH_FILE                     "path/to/file/splash.png"           # Project splash image, useful for imagery generation
 
 IMAGERY_FLAG_GENERATE                   0                                   # Flag: request project imagery generation: Social Cards, itchio, Steam...
-
-# TODO: Options for imagery edition and generation
 #------------------------------------------------------------------------------------
