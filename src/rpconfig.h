@@ -136,7 +136,7 @@ typedef struct {
         } Windows;
         struct {
             bool useCrossCompiler;      // Platform: Linux: Flag: request cross-compiler usage
-            char crossCompilerPath;     // Platform: Linux: Path to DRM cross-compiler for target ABI
+            char crossCompilerPath[256]; // Platform: Linux: Path to DRM cross-compiler for target ABI
 
         } Linux;
         struct {
@@ -168,7 +168,7 @@ typedef struct {
         } Android;
         struct {
             bool useCrossCompiler;      // Platform: DRM: Flag: request cross-compiler usage
-            char crossCompilerPath;     // Platform: DRM: Path to DRM cross-compiler for target ABI
+            char crossCompilerPath[256]; // Platform: DRM: Path to DRM cross-compiler for target ABI
         } DRM;
         struct {
             bool placeholder;           // Platform: FreeBSD: Flag: placeholder
@@ -601,7 +601,7 @@ void SaveProjectConfigRaw(rpcProjectConfigRaw raw, const char *fileName, int fla
 }
 
 // Load project config data data from .rpc file
-static rpcProjectConfig *LoadProjectConfig(rpcProjectConfigRaw raw)
+rpcProjectConfig *LoadProjectConfig(rpcProjectConfigRaw raw)
 {
     rpcProjectConfig *config = (rpcProjectConfig *)RL_CALLOC(1, sizeof(rpcProjectConfig));
 
@@ -611,13 +611,13 @@ static rpcProjectConfig *LoadProjectConfig(rpcProjectConfigRaw raw)
 }
 
 // Unload project data
-static void UnloadProjectConfig(rpcProjectConfig *config)
+void UnloadProjectConfig(rpcProjectConfig *config)
 {
     RL_FREE(config);
 }
 
 // Save project config data to .rpc file
-static void SaveProjectConfig(rpcProjectConfig *config, const char *fileName)
+void SaveProjectConfig(rpcProjectConfig *config, const char *fileName)
 {
     int flags = 0;
 
