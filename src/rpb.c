@@ -271,10 +271,13 @@ static bool windowExitActive = false;
 
 // GUI: Custom file dialogs
 //-----------------------------------------------------------------------------------
+// Generic file/directory loaders for projeect config properties
 static bool showLoadFileDialog = false;
 static bool showLoadDirectoryDialog = false;
-static bool showSaveFileDialog = false;
-static bool showExportFileDialog = false;
+
+static bool showLoadProjectDialog = false;
+static bool showSaveProjectDialog = false;
+static bool showBuildProjectDialog = false;
 
 static int projectEditProperty = -1;
 //-----------------------------------------------------------------------------------
@@ -518,13 +521,13 @@ static void UpdateDrawFrame(void)
     //if (IsKeyDown(KEY_LEFT_ALT) && IsKeyPressed(KEY_ENTER)) ToggleFullscreen();
 
     // Show dialog: load file (.xxx)
-    if ((IsKeyDown(KEY_LEFT_CONTROL) && IsKeyPressed(KEY_O)) || mainToolbarState.btnLoadFilePressed) showLoadFileDialog = true;
+    if ((IsKeyDown(KEY_LEFT_CONTROL) && IsKeyPressed(KEY_O)) || mainToolbarState.btnLoadFilePressed) showLoadProjectDialog = true;
 
     // Show dialog: save file (.xxx)
-    if ((IsKeyDown(KEY_LEFT_CONTROL) && IsKeyPressed(KEY_S)) || mainToolbarState.btnSaveFilePressed) showSaveFileDialog = true;
+    if ((IsKeyDown(KEY_LEFT_CONTROL) && IsKeyPressed(KEY_S)) || mainToolbarState.btnSaveFilePressed) showSaveProjectDialog = true;
 
     // Show dialog: export file (.xxx)
-    if ((IsKeyDown(KEY_LEFT_CONTROL) && IsKeyPressed(KEY_E)) || mainToolbarState.btnExportFilePressed) showExportFileDialog = true;
+    if ((IsKeyDown(KEY_LEFT_CONTROL) && IsKeyPressed(KEY_E)) || mainToolbarState.btnExportFilePressed) showBuildProjectDialog = true;
 
     // Show closing window on ESC
     if (IsKeyPressed(KEY_ESCAPE))
@@ -539,19 +542,15 @@ static void UpdateDrawFrame(void)
     #else
         else if (showLoadFileDialog) showLoadFileDialog = false;
         else if (showLoadDirectoryDialog) showLoadDirectoryDialog = false;
-        else if (showSaveFileDialog) showSaveFileDialog = false;
-        else if (showExportFileDialog) showExportFileDialog = false;
+        else if (showLoadProjectDialog) showLoadProjectDialog = false;
+        else if (showSaveProjectDialog) showSaveProjectDialog = false;
+        else if (showBuildProjectDialog) showBuildProjectDialog = false;
     #endif
     }
     //----------------------------------------------------------------------------------
 
     // Main toolbar logic
     //----------------------------------------------------------------------------------
-    // TODO: Process required buttons not processed previously
-    //if (mainToolbarState.btnNewProjectPressed) showMessageReset = true;
-    //else if (mainToolbarState.btnOpenProjectPressed) showLoadFileDialog = true;
-    //else if (mainToolbarState.btnSaveProjectPressed) showSaveFileDialog = true;
-
     if (mainToolbarState.visualStyleActive != mainToolbarState.prevVisualStyleActive)
     {
         // Reset to default internal style
@@ -624,7 +623,9 @@ static void UpdateDrawFrame(void)
         showMessageReset ||
         showLoadFileDialog ||
         showLoadDirectoryDialog ||
-        showExportFileDialog ||
+        showLoadProjectDialog ||
+        showSaveProjectDialog ||
+        showBuildProjectDialog ||
         showSupportMessage)
     {
         lockBackground = true;
@@ -730,6 +731,7 @@ static void UpdateDrawFrame(void)
                             project.entries[i].text, 255, project.entries[i].editMode)) project.entries[i].editMode = !project.entries[i].editMode;
                         if (GuiButton((Rectangle){ 24 + 180 + textWidth - 86, 52 + 96 + 12 + 36 + (24 + 8)*k + panelScroll.y, 86, 24 }, "#6#Browse"))
                         {
+                            memset(inFileName, 0, 256);
                             showLoadFileDialog = true;
                             projectEditProperty = i;
                         }
@@ -783,8 +785,9 @@ static void UpdateDrawFrame(void)
             showMessageReset ||
             showLoadFileDialog ||
             showLoadDirectoryDialog ||
-            showSaveFileDialog ||
-            showExportFileDialog ||
+            showLoadProjectDialog ||
+            showSaveProjectDialog ||
+            showBuildProjectDialog ||
             showSupportMessage)
         {
             DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), Fade(GetColor(GuiGetStyle(DEFAULT, BACKGROUND_COLOR)), 0.8f));
@@ -846,7 +849,7 @@ static void UpdateDrawFrame(void)
             {
                 windowExportActive = false;
                 strcpy(outFileName, "icon.ico");
-                showExportFileDialog = true;
+                showBuildProjectDialog = true;
             }
             else if (result == 0) windowExportActive = false;
         }
@@ -876,16 +879,15 @@ static void UpdateDrawFrame(void)
         if (showLoadFileDialog && !showLoadDirectoryDialog)
         {
 #if defined(CUSTOM_MODAL_DIALOGS)
-            int result = GuiFileDialog(DIALOG_MESSAGE, "Load file...", inFileName, "Ok", "Just drag and drop your .rpc file!");
+            int result = GuiFileDialog(DIALOG_MESSAGE, "Load file...", inFileName, "Ok", "Just drag and drop your file!");
 #else
-            int result = GuiFileDialog(DIALOG_OPEN_FILE, "Load file...", inFileName, "", "File Type (*.rpc)");
+            int result = GuiFileDialog(DIALOG_OPEN_FILE, "Load file...", inFileName, NULL, NULL);
 #endif
             if (result == 1)
             {
-                // TODO: Load file: inFileName
-                rpcProjectConfigRaw project = LoadProjectConfigRaw(inFileName);
-
-                SetWindowTitle(TextFormat("%s v%s - %s", toolName, toolVersion, GetFileName(inFileName)));
+                // Update required property with selected path
+                memset(project.entries[projectEditProperty].text, 0, 256);
+                strcpy(project.entries[projectEditProperty].text, inFileName);
             }
 
             if (result >= 0) showLoadFileDialog = false;
@@ -912,14 +914,34 @@ static void UpdateDrawFrame(void)
         }
         //----------------------------------------------------------------------------------------
 
-        // GUI: Save File Dialog (and saving logic)
+        // GUI: Load Project Dialog (and loading logic)
         //----------------------------------------------------------------------------------------
-        if (showSaveFileDialog)
+        if (showLoadProjectDialog)
         {
 #if defined(CUSTOM_MODAL_DIALOGS)
-            int result = GuiFileDialog(DIALOG_TEXTINPUT, "Save file...", outFileName, "Ok;Cancel", NULL);
+            int result = GuiFileDialog(DIALOG_MESSAGE, "Load project file...", inFileName, "Ok", "Just drag and drop your .rpc file!");
 #else
-            int result = GuiFileDialog(DIALOG_SAVE_FILE, "Save file...", outFileName, "*.rpc", "Project Config (*.rpc)");
+            int result = GuiFileDialog(DIALOG_OPEN_FILE, "Load project file...", inFileName, "", "Project Config Files (*.rpc)");
+#endif
+            if (result == 1)
+            {
+                project = LoadProjectConfigRaw(inFileName);
+
+                SetWindowTitle(TextFormat("%s v%s - %s", toolName, toolVersion, GetFileName(inFileName)));
+            }
+
+            if (result >= 0) showLoadProjectDialog = false;
+        }
+        //----------------------------------------------------------------------------------------
+
+        // GUI: Save Project Dialog (and saving logic)
+        //----------------------------------------------------------------------------------------
+        if (showSaveProjectDialog)
+        {
+#if defined(CUSTOM_MODAL_DIALOGS)
+            int result = GuiFileDialog(DIALOG_TEXTINPUT, "Save project file...", outFileName, "Ok;Cancel", NULL);
+#else
+            int result = GuiFileDialog(DIALOG_SAVE_FILE, "Save project file...", outFileName, "*.rpc", "Project Config File (*.rpc)");
 #endif
             if (result == 1)
             {
@@ -936,13 +958,13 @@ static void UpdateDrawFrame(void)
             #endif
             }
 
-            if (result >= 0) showSaveFileDialog = false;
+            if (result >= 0) showSaveProjectDialog = false;
         }
         //----------------------------------------------------------------------------------------
 
         // GUI: Export File Dialog (and saving logic)
         //----------------------------------------------------------------------------------------
-        if (showExportFileDialog)
+        if (showBuildProjectDialog)
         {
             // Consider different supported file types
             int fileTypeActive = 0;
@@ -969,7 +991,7 @@ static void UpdateDrawFrame(void)
             #endif
             }
 
-            if (result >= 0) showExportFileDialog = false;
+            if (result >= 0) showBuildProjectDialog = false;
         }
         //----------------------------------------------------------------------------------------
 
