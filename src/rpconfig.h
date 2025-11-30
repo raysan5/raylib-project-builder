@@ -2,7 +2,7 @@
 *
 *   rpc - raylib project config data types and functionality
 *
-*   NOTE: This header types must be shared by [rpc] and [rpb] tools
+*   NOTE: This header types and functions must be shared by [rpc] and [rpb] tools for consitency
 *
 *
 *   LICENSE: zlib/libpng
@@ -25,8 +25,6 @@
 *     3. This notice may not be removed or altered from any source distribution.
 *
 **********************************************************************************************/
-
-// WARNING: raygui implementation is expected to be defined before including this header
 
 #ifndef RPCONFIG_H
 #define RPCONFIG_H
@@ -281,6 +279,9 @@ extern "C" {    // Prevents name mangling of functions
 RPCAPI rpcProjectConfigRaw LoadProjectConfigRaw(const char *fileName); // Load project config data from .rpc file
 RPCAPI void UnloadProjectConfigRaw(rpcProjectConfigRaw raw); // Unload project config raw data
 RPCAPI void SaveProjectConfigRaw(rpcProjectConfigRaw raw, const char *fileName, int flags); // Save project config raw data to .rpc file
+
+RPCAPI char *GetProjectConfigText(rpcProjectConfigRaw raw, const char *key); // Get project config text by key
+RPCAPI int *GetProjectConfigValue(rpcProjectConfigRaw raw, const char *key); // Get project config value by key
 
 RPCAPI rpcProjectConfig *LoadProjectConfig(rpcProjectConfigRaw raw); // Load project config data from raw project config
 RPCAPI void UnloadProjectConfig(rpcProjectConfig *config);  // Unload project data
@@ -784,6 +785,26 @@ void SyncProjectConfigRaw(rpcProjectConfigRaw dst, rpcProjectConfig *src)
         else if (TextIsEqual(dst.entries[i].key, "IMAGERY_LOGO_FILE")) UpdateEntryText(&dst.entries[i], src->Imagery.logoFile); // Project logo image, useful for imagery generation
         else if (TextIsEqual(dst.entries[i].key, "IMAGERY_SPLASH_FILE")) UpdateEntryText(&dst.entries[i], src->Imagery.splashFile); // Project splash image, useful for imagery generation
         else if (TextIsEqual(dst.entries[i].key, "IMAGERY_FLAG_GENERATE")) UpdateEntryValue(&dst.entries[i], src->Imagery.genImageryAuto); // Flag: request project imagery generation: Social Cards, itchio, Steam...
+    }
+}
+
+// Get project config text by key
+// NOTE: A pointer to the text is returned to allow modifying it
+char *GetProjectConfigText(rpcProjectConfigRaw raw, const char *key)
+{
+    for (int i = 0; i < raw.entryCount; i++)
+    {
+        if (TextIsEqual(raw.entries[i].key, key)) return raw.entries[i].text;
+    }
+}
+
+// Get project config value by key
+// NOTE: A pointer to the value is returned to allow modifying it
+int *GetProjectConfigValue(rpcProjectConfigRaw raw, const char *key)
+{
+    for (int i = 0; i < raw.entryCount; i++)
+    {
+        if (TextIsEqual(raw.entries[i].key, key)) return &raw.entries[i].value;
     }
 }
 
