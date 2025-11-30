@@ -475,13 +475,18 @@ static void UpdateDrawFrame(void)
     {
         FilePathList droppedFiles = LoadDroppedFiles();
 
-        if (IsFileExtension(droppedFiles.paths[0], ".ex1") ||
-            IsFileExtension(droppedFiles.paths[0], ".ex2"))
+        if (IsFileExtension(droppedFiles.paths[0], ".rpc"))
         {
-            // TODO: Do something with recognized fileformats
+            project = LoadProjectConfigRaw(droppedFiles.paths[0]);
 
-            SetWindowTitle(TextFormat("%s v%s - %s", toolName, toolVersion, inFileName));
+            SetWindowTitle(TextFormat("%s v%s - %s", toolName, toolVersion, GetFileName(droppedFiles.paths[0])));
         }
+#if defined(PLATFORM_WEB)
+        else
+        {
+            // TODO: Check if the file has been dropped over some file-path property rectangle
+        }
+#endif
         /*
         else if (IsFileExtension(droppedFiles.paths[0], ".rkey"))
         {
@@ -589,30 +594,6 @@ static void UpdateDrawFrame(void)
         else closeWindow = true;
     }
 #endif
-
-    // Screen scale logic (x2) -> Not used in this tool
-    //----------------------------------------------------------------------------------
-    /*
-    if (screenSizeActive)
-    {
-        // Screen size x2
-        if (GetScreenWidth() < screenWidth*2)
-        {
-            SetWindowSize(screenWidth*2, screenHeight*2);
-            SetMouseScale(0.5f, 0.5f);
-        }
-    }
-    else
-    {
-        // Screen size x1
-        if (screenWidth*2 >= GetScreenWidth())
-        {
-            SetWindowSize(screenWidth, screenHeight);
-            SetMouseScale(1.0f, 1.0f);
-        }
-    }
-    */
-    //----------------------------------------------------------------------------------
 
     // WARNING: Some windows should lock the main screen controls when shown
     if (windowHelpState.windowActive ||
@@ -740,11 +721,15 @@ static void UpdateDrawFrame(void)
                     {
                         if (GuiTextBox((Rectangle){ 24 + 180, 52 + 96 + 12 + 36 + (24 + 8)*k + panelScroll.y, textWidth - 90, 24 }, 
                             project.entries[i].text, 255, project.entries[i].editMode)) project.entries[i].editMode = !project.entries[i].editMode;
+#if defined(PLATFORM_WEB)
+                        GuiDisable();
+#endif
                         if (GuiButton((Rectangle){ 24 + 180 + textWidth - 86, 52 + 96 + 12 + 36 + (24 + 8)*k + panelScroll.y, 86, 24 }, "#173#Browse"))
                         {
                             showLoadDirectoryDialog = true;
                             projectEditProperty = i;
                         }
+                        GuiEnable();
                     } break;
                     default: break;
                 }
@@ -879,15 +864,18 @@ static void UpdateDrawFrame(void)
         if (showLoadFileDialog && !showLoadDirectoryDialog)
         {
 #if defined(CUSTOM_MODAL_DIALOGS)
-            int result = GuiFileDialog(DIALOG_MESSAGE, "Load file...", inFileName, "Ok", "Just drag and drop your file!");
+            int result = GuiFileDialog(DIALOG_MESSAGE, "Load file...", inFileName, "Ok", "Drag and drop your file over\nthe text field rectangle!");
 #else
             int result = GuiFileDialog(DIALOG_OPEN_FILE, "Load file...", inFileName, NULL, NULL);
 #endif
             if (result == 1)
             {
-                // Update required property with selected path
-                memset(project.entries[projectEditProperty].text, 0, 256);
-                strcpy(project.entries[projectEditProperty].text, inFileName);
+                if (inFileName[0] != '\0')
+                {
+                    // Update required property with selected path
+                    memset(project.entries[projectEditProperty].text, 0, 256);
+                    strcpy(project.entries[projectEditProperty].text, inFileName);
+                }
             }
 
             if (result >= 0) showLoadFileDialog = false;
