@@ -927,7 +927,7 @@ static void UpdateDrawFrame(void)
         if (showSaveProjectDialog)
         {
 #if defined(CUSTOM_MODAL_DIALOGS)
-            int result = GuiFileDialog(DIALOG_TEXTINPUT, "Save project file...", outFileName, "Ok;Cancel", NULL);
+            int result = GuiFileDialog(DIALOG_MESSAGE, "Save project file...", outFileName, "Ok;Cancel", NULL);
 #else
             int result = GuiFileDialog(DIALOG_SAVE_FILE, "Save project file...", outFileName, "*.rpc", "Project Config File (*.rpc)");
 #endif
@@ -950,26 +950,19 @@ static void UpdateDrawFrame(void)
         }
         //----------------------------------------------------------------------------------------
 
-        // GUI: Export File Dialog (and saving logic)
+        // GUI: Build Project Dialog
         //----------------------------------------------------------------------------------------
         if (showBuildProjectDialog)
         {
-            // Consider different supported file types
-            int fileTypeActive = 0;
-            char filters[64] = { 0 };
-
-            if (fileTypeActive == 0) strcpy(filters, "*.xx1");
-            else if (fileTypeActive == 1) strcpy(filters, "*.xx2");
-            else if (fileTypeActive == 2) strcpy(filters, "*.xx3");
-
 #if defined(CUSTOM_MODAL_DIALOGS)
-            int result = GuiFileDialog(DIALOG_TEXTINPUT, "Export file...", outFileName, "Ok;Cancel", NULL);
+            int result = GuiFileDialog(DIALOG_TEXTINPUT, "Build project...", inFilePath, "Ok;Cancel", NULL);
 #else
-            int result = GuiFileDialog(DIALOG_SAVE_FILE, "Export file...", outFileName, filters, TextFormat("File Type (%s)", filters));
+            int result = GuiFileDialog(DIALOG_OPEN_DIRECTORY, "Build project...", inFilePath, "", "");
 #endif
             if (result == 1)
             {
-                // TODO: Export file: outFileName
+                // TODO: Build project to output directory defined
+                //int output = BuildProject(project);
 
             #if defined(PLATFORM_WEB)
                 // Download file from MEMFS (emscripten memory filesystem)
