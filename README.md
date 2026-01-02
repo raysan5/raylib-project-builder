@@ -28,4 +28,4 @@ How to use this tool...
 
 In any case, consider a donation to help the author keep working on software for games development.
 
-*Copyright (c) 2025 Ramon Santamaria ([@raysan5](https://github.com/raysan5))*
+*Copyright (c) 2025-2026 Ramon Santamaria ([@raysan5](https://github.com/raysan5))*

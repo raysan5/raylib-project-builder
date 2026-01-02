@@ -24,7 +24,7 @@
 *           NOTE: Avoids including tinyfiledialogs depencency library
 *
 *   VERSIONS HISTORY:
-*       1.0  (xx-Nov-2025)  First release
+*       1.0  (xx-Nov-2026)  First release
 *
 *   DEPENDENCIES:
 *       raylib 5.6-dev          - Windowing/input management and drawing
@@ -52,7 +52,7 @@
 *
 *   LICENSE: zlib/libpng
 *
-*   Copyright (c) 2025 Ramon Santamaria (@raysan5)
+*   Copyright (c) 2025-2026 Ramon Santamaria (@raysan5)
 *
 *   This software is provided "as-is", without any express or implied warranty. In no event
 *   will the authors be held liable for any damages arising from the use of this software.
@@ -197,12 +197,12 @@ static int currentPlatform = 0;
 
 static int currentTab = 0;
 const char *tabText[6] = {
-    "#176#PROJECT SETTINGS", 
-    "#140#BUILD SETTINGS", 
-    "#181#PLATFORM SETTINGS", 
-    "#178#DEPLOY OPTIONS", 
-    "#12#IMAGERY EDITION", 
-    "#133#raylib CONFIG" 
+    "#176#PROJECT SETTINGS",
+    "#140#BUILD SETTINGS",
+    "#181#PLATFORM SETTINGS",
+    "#178#DEPLOY OPTIONS",
+    "#12#IMAGERY EDITION",
+    "#133#raylib CONFIG"
 };
 
 static Vector2 panelScroll = { 0 };
@@ -698,17 +698,17 @@ static void UpdateDrawFrame(void)
                     } break;
                     case RPC_TYPE_VALUE:
                     {
-                        if (GuiValueBox((Rectangle){ 24 + 180, 52 + 96 + 12 + 36 + (24 + 8)*k + panelScroll.y, 180, 24 }, 
+                        if (GuiValueBox((Rectangle){ 24 + 180, 52 + 96 + 12 + 36 + (24 + 8)*k + panelScroll.y, 180, 24 },
                             NULL, &project.entries[i].value, 0, 1024, project.entries[i].editMode)) project.entries[i].editMode = !project.entries[i].editMode;
                     } break;
                     case RPC_TYPE_TEXT:
                     {
-                        if (GuiTextBox((Rectangle){ 24 + 180, 52 + 96 + 12 + 36 + (24 + 8)*k + panelScroll.y, textWidth, 24 }, 
+                        if (GuiTextBox((Rectangle){ 24 + 180, 52 + 96 + 12 + 36 + (24 + 8)*k + panelScroll.y, textWidth, 24 },
                             project.entries[i].text, 255, project.entries[i].editMode)) project.entries[i].editMode = !project.entries[i].editMode;
                     } break;
                     case RPC_TYPE_TEXT_FILE:
                     {
-                        if (GuiTextBox((Rectangle){ 24 + 180, 52 + 96 + 12 + 36 + (24 + 8)*k + panelScroll.y, textWidth - 90, 24 }, 
+                        if (GuiTextBox((Rectangle){ 24 + 180, 52 + 96 + 12 + 36 + (24 + 8)*k + panelScroll.y, textWidth - 90, 24 },
                             project.entries[i].text, 255, project.entries[i].editMode)) project.entries[i].editMode = !project.entries[i].editMode;
                         if (GuiButton((Rectangle){ 24 + 180 + textWidth - 86, 52 + 96 + 12 + 36 + (24 + 8)*k + panelScroll.y, 86, 24 }, "#6#Browse"))
                         {
@@ -719,7 +719,7 @@ static void UpdateDrawFrame(void)
                     } break;
                     case RPC_TYPE_TEXT_PATH:
                     {
-                        if (GuiTextBox((Rectangle){ 24 + 180, 52 + 96 + 12 + 36 + (24 + 8)*k + panelScroll.y, textWidth - 90, 24 }, 
+                        if (GuiTextBox((Rectangle){ 24 + 180, 52 + 96 + 12 + 36 + (24 + 8)*k + panelScroll.y, textWidth - 90, 24 },
                             project.entries[i].text, 255, project.entries[i].editMode)) project.entries[i].editMode = !project.entries[i].editMode;
 #if defined(PLATFORM_WEB)
                         GuiDisable();
@@ -1041,7 +1041,7 @@ static void ShowCommandLineInfo(void)
     printf("// more info and bugs-report: github.com/raylibtech/rtools                       //\n");
     printf("// feedback and support:      ray[at]raylibtech.com                              //\n");
     printf("//                                                                               //\n");
-    printf("// Copyright (c) 2022-2025 raylib technologies (@raylibtech)                     //\n");
+    printf("// Copyright (c) 2022-2026 raylib technologies (@raylibtech)                     //\n");
     printf("//                                                                               //\n");
     printf("///////////////////////////////////////////////////////////////////////////////////\n\n");
 
