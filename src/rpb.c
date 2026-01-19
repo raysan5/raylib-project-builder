@@ -760,7 +760,7 @@ static void UpdateDrawFrame(void)
         GuiStatusBar((Rectangle){ 320 + 180 + 340 - 3, GetScreenHeight() - 24, GetScreenWidth() - 600, 24 }, NULL);
         //----------------------------------------------------------------------------------
 
-        // NOTE: If some overlap window is open and main window is locked, we draw a background rectangle
+        // NOTE: If some overlap window is open and main window is locked, draw a background rectangle
         //if (GuiIsLocked())    // WARNING: It takes one extra frame to process, so we just check required conditions
         if (windowHelpState.windowActive ||
             windowAboutState.windowActive ||
