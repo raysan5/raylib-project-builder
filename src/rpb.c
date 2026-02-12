@@ -761,7 +761,7 @@ static void UpdateDrawFrame(void)
         //----------------------------------------------------------------------------------
 
         // NOTE: If some overlap window is open and main window is locked, draw a background rectangle
-        //if (GuiIsLocked())    // WARNING: It takes one extra frame to process, so we just check required conditions
+        //if (GuiIsLocked())    // WARNING: It takes one extra frame to process, so just checking required conditions
         if (windowHelpState.windowActive ||
             windowAboutState.windowActive ||
             showIssueReportWindow ||
@@ -778,7 +778,7 @@ static void UpdateDrawFrame(void)
             DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), Fade(GetColor(GuiGetStyle(DEFAULT, BACKGROUND_COLOR)), 0.8f));
         }
 
-        // WARNING: Before drawing the windows, we unlock raygui input
+        // WARNING: Before drawing the windows, unlock raygui input
         GuiUnlock();
 
         // GUI: Help Window
@@ -940,7 +940,7 @@ static void UpdateDrawFrame(void)
 
             #if defined(PLATFORM_WEB)
                 // Download file from MEMFS (emscripten memory filesystem)
-                // NOTE: Second argument must be a simple filename (we can't use directories)
+                // NOTE: Second argument must be a simple filename (can't use directories)
                 // NOTE: Included security check to (partially) avoid malicious code on PLATFORM_WEB
                 if (strchr(outFileName, '\'') == NULL) emscripten_run_script(TextFormat("saveFileFromMEMFSToDisk('%s','%s')", outFileName, GetFileName(outFileName)));
             #endif
@@ -966,7 +966,7 @@ static void UpdateDrawFrame(void)
 
             #if defined(PLATFORM_WEB)
                 // Download file from MEMFS (emscripten memory filesystem)
-                // NOTE: Second argument must be a simple filename (we can't use directories)
+                // NOTE: Second argument must be a simple filename (can't use directories)
                 // NOTE: Included security check to (partially) avoid malicious code on PLATFORM_WEB
                 if (strchr(outFileName, '\'') == NULL) emscripten_run_script(TextFormat("saveFileFromMEMFSToDisk('%s','%s')", outFileName, GetFileName(outFileName)));
             #endif
