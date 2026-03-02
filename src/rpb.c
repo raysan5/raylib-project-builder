@@ -459,7 +459,7 @@ int main(int argc, char *argv[])
     CloseWindow();                  // Close window and OpenGL context
     //--------------------------------------------------------------------------------------
 
-#endif  // !COMMAND_LINE_ONLY
+#endif // !COMMAND_LINE_ONLY
     return 0;
 }
 
@@ -1148,7 +1148,7 @@ static void ProcessCommandLine(int argc, char *argv[])
 
     if (showUsageInfo) ShowCommandLineInfo();
 }
-#endif      // PLATFORM_DESKTOP || COMMAND_LINE_ONLY
+#endif // PLATFORM_DESKTOP || COMMAND_LINE_ONLY
 
 //--------------------------------------------------------------------------------------------
 // Load/Save/Export functions
