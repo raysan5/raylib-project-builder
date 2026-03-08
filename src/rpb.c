@@ -27,8 +27,8 @@
 *       1.0  (xx-Nov-2026)  First release
 *
 *   DEPENDENCIES:
-*       raylib 5.6-dev          - Windowing/input management and drawing
-*       raygui 4.5-dev          - Immediate-mode GUI controls with custom styling and icons
+*       raylib 6.0              - Windowing/input management and drawing
+*       raygui 5.0              - Immediate-mode GUI controls with custom styling and icons
 *       rpng 1.5                - PNG chunks management
 *       rini 3.0                - Configuration file load/save
 *       rkls 1.0                - Key licensing system
