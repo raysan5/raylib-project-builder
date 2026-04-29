@@ -1210,12 +1210,12 @@ static void SaveApplicationConfig(void)
     rini_data config = rini_load(NULL);   // Create empty config with 32 entries (RINI_MAX_CONFIG_CAPACITY)
 
     // Define header comment lines
-    rini_set_comment_line(&config, NULL);   // Empty comment line, but including comment prefix delimiter
-    rini_set_comment_line(&config, TextFormat("%s initialization configuration options", TOOL_NAME));
-    rini_set_comment_line(&config, NULL);
-    rini_set_comment_line(&config, "NOTE: This file is loaded at application startup,");
-    rini_set_comment_line(&config, "if file is not found, default values are applied");
-    rini_set_comment_line(&config, NULL);
+    rini_set_comment_line(&config, " ");   // Empty comment line, but including comment prefix delimiter
+    rini_set_comment_line(&config, TextFormat(" %s initialization configuration options", TOOL_NAME));
+    rini_set_comment_line(&config, " ");
+    rini_set_comment_line(&config, " NOTE: This file is loaded at application startup,");
+    rini_set_comment_line(&config, " if file is not found, default values are applied");
+    rini_set_comment_line(&config, " ");
 
 #if defined(PLATFORM_DESKTOP)
     int windowMaximized = (int)IsWindowMaximized();
