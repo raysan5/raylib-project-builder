@@ -175,14 +175,15 @@ void GuiMainToolbar(GuiMainToolbarState *state)
     GuiPanel((Rectangle){ state->anchorRight.x, state->anchorRight.y, 132, 40 }, NULL);
 
     // Project/File options
-    GuiSetTooltip("Create new empty project (LCTRL+N)");
-    state->btnNewFilePressed = GuiButton((Rectangle){ state->anchorFile.x + 12, state->anchorFile.y + 8, 24, 24 }, "#8#");  // TODO: New file creation
-    GuiSetTooltip("Load new image into project (LCTRL+O)");
-    state->btnLoadFilePressed = GuiButton((Rectangle){ state->anchorFile.x + 12 + 24 + 4, state->anchorFile.y + 8, 24, 24 }, "#5#");
-    GuiSetTooltip("Save current image file (LCTRL+S)");
-    state->btnSaveFilePressed = GuiButton((Rectangle){ state->anchorFile.x + 12 + 48 + 8, state->anchorFile.y + 8, 24, 24 }, "#6#");
-    GuiSetTooltip("Export selected image or full board (LCTRL+E)");
-    state->btnExportFilePressed = GuiButton((Rectangle){ state->anchorFile.x + 12 + 72 + 12, state->anchorFile.y + 8, 24, 24 }, "#7#");
+    // NOTE: New project is not supported, it should be created on [rpc] tool
+    //GuiSetTooltip("Create new empty project (LCTRL+N)");
+    //state->btnNewFilePressed = GuiButton((Rectangle){ state->anchorFile.x + 12, state->anchorFile.y + 8, 24, 24 }, "#8#");  // TODO: New file creation
+    GuiSetTooltip("Load project config file (LCTRL+O)");
+    state->btnLoadFilePressed = GuiButton((Rectangle){ state->anchorFile.x + 12, state->anchorFile.y + 8, 24, 24 }, "#5#");
+    GuiSetTooltip("Save project config file (LCTRL+S)");
+    state->btnSaveFilePressed = GuiButton((Rectangle){ state->anchorFile.x + 12 + 24 + 4, state->anchorFile.y + 8, 24, 24 }, "#6#");
+    //GuiSetTooltip("Export selected image or full board (LCTRL+E)");
+    //state->btnExportFilePressed = GuiButton((Rectangle){ state->anchorFile.x + 12 + 48 + 8, state->anchorFile.y + 8, 24, 24 }, "#7#");
 
     // Edit options
     //...
