@@ -5,7 +5,7 @@ on:
   push:
     paths:
       - 'src/**'
-      - '.github/workflows/windows.yml'
+      - '.github/workflows/build_windows.yml'
   release:
     types: [published]
     
@@ -24,6 +24,8 @@ jobs:
       PROJECT_NAME: rpb
       PROJECT_BUILD_PATH: "${{ github.event.repository.name }}\\projects\\VS2022\\build\\rpb\\bin\\x64\\Release"
       PROJECT_RELEASE_PATH: rpb_dev_win_x64
+      PROJECT_RESOURCES_SRC_PATH: src\template
+      PROJECT_RESOURCES_DST_PATH: template
 
     steps:
     - name: Checkout this repo
@@ -59,7 +61,7 @@ jobs:
       run: |
         dir
         cd ${{ env.PROJECT_REPO_NAME }}/projects/VS2022
-        msbuild.exe ${{ env.PROJECT_NAME }}.sln /target:${{ env.PROJECT_NAME }} /property:Configuration=Release /property:Platform=x64
+        msbuild.exe ${{ env.PROJECT_NAME }}.sln /target:${{ env.PROJECT_NAME }} /property:Configuration=Release /property:Platform=x64 /property:RaylibSrcPath="..\..\..\..\raylib\src"
         cd ../..
       shell: cmd
 
@@ -77,7 +79,9 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: ${{ env.PROJECT_RELEASE_PATH }}.zip
-        path: ./${{ env.PROJECT_RELEASE_PATH }}.zip
+        path: |
+            ./${{ env.PROJECT_RELEASE_PATH }}
+            !./${{ env.PROJECT_RELEASE_PATH }}.zip
 
     - name: Upload Artifact to Release
       uses: softprops/action-gh-release@v1
