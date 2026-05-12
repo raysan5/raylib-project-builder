@@ -50,7 +50,7 @@ typedef struct {
     bool btnNewFilePressed;
     bool btnLoadFilePressed;
     bool btnSaveFilePressed;
-    bool btnExportFilePressed;
+    bool btnSaveAsFilePressed;
 
     // Editor options
     //...
@@ -126,7 +126,7 @@ GuiMainToolbarState InitGuiMainToolbar(void)
     // Anchors for panels
     state.anchorFile = (Vector2){ 0, 0 };
     //state.anchorEdit = (Vector2){ state.anchorFile.x + 132 - 1, 0 };
-    state.anchorTools = (Vector2){ state.anchorFile.x + 132 - 1, 0 };
+    state.anchorTools = (Vector2){ state.anchorFile.x + 104 - 1, 0 };
     state.anchorVisuals = (Vector2){ 0, 0 };    // Anchor right, depends on screen width
     state.anchorRight = (Vector2){ 0, 0 };      // Anchor right, depends on screen width
 
@@ -134,7 +134,7 @@ GuiMainToolbarState InitGuiMainToolbar(void)
     state.btnNewFilePressed = false;
     state.btnLoadFilePressed = false;
     state.btnSaveFilePressed = false;
-    state.btnExportFilePressed = false;
+    state.btnSaveAsFilePressed = false;
 
     // Edit options
     //...
@@ -168,7 +168,7 @@ void GuiMainToolbar(GuiMainToolbarState *state)
     state->anchorRight.x = (float)GetScreenWidth() - 132;       // Update right-anchor panel
     state->anchorVisuals.x = state->anchorRight.x - 190 + 1;    // Update right-anchor panel
 
-    GuiPanel((Rectangle){ state->anchorFile.x, state->anchorFile.y, 132, 40 }, NULL);
+    GuiPanel((Rectangle){ state->anchorFile.x, state->anchorFile.y, 104, 40 }, NULL);
     //GuiPanel((Rectangle){ state->anchorEdit.x, state->anchorEdit.y, 200, 40 }, NULL);
     GuiPanel((Rectangle){ state->anchorTools.x, state->anchorTools.y, state->anchorVisuals.x - state->anchorTools.x + 1, 40 }, NULL);
     GuiPanel((Rectangle){ state->anchorVisuals.x, state->anchorVisuals.y, 190, 40 }, NULL);
@@ -179,18 +179,19 @@ void GuiMainToolbar(GuiMainToolbarState *state)
     //GuiSetTooltip("Create new empty project (LCTRL+N)");
     //state->btnNewFilePressed = GuiButton((Rectangle){ state->anchorFile.x + 12, state->anchorFile.y + 8, 24, 24 }, "#8#");  // TODO: New file creation
     GuiSetTooltip("Load project config file (LCTRL+O)");
-    state->btnLoadFilePressed = GuiButton((Rectangle){ state->anchorFile.x + 12, state->anchorFile.y + 8, 24, 24 }, "#5#");
-    GuiSetTooltip("Save project config file (LCTRL+S)");
-    state->btnSaveFilePressed = GuiButton((Rectangle){ state->anchorFile.x + 12 + 24 + 4, state->anchorFile.y + 8, 24, 24 }, "#6#");
-    //GuiSetTooltip("Export selected image or full board (LCTRL+E)");
-    //state->btnExportFilePressed = GuiButton((Rectangle){ state->anchorFile.x + 12 + 48 + 8, state->anchorFile.y + 8, 24, 24 }, "#7#");
+    state->btnLoadFilePressed = GuiButton((Rectangle){ state->anchorFile.x + 12, state->anchorFile.y + 8, 24, 24 }, "#1#");
+    GuiSetTooltip("Save current project config file (LCTRL+S)");
+    state->btnSaveFilePressed = GuiButton((Rectangle){ state->anchorFile.x + 12 + 24 + 4, state->anchorFile.y + 8, 24, 24 }, "#2#");
+    GuiSetTooltip("SaveAs current project config file (LCTRL+LSHFT+S)");
+    state->btnSaveFilePressed = GuiButton((Rectangle){ state->anchorFile.x + 12 + 48 + 8, state->anchorFile.y + 8, 24, 24 }, "#6#");
 
     // Edit options
     //...
 
     // Tool options
     GuiSetTooltip("Build project for selected platform (LCTRL+B)");
-    state->btnBuildProjectPressed = GuiButton((Rectangle){ state->anchorTools.x + 12 + 72 + 12, state->anchorTools.y + 8, 288, 24 }, "#131#BUILD PROJECT");
+    state->btnBuildProjectPressed = GuiButton((Rectangle){ state->anchorTools.x + 12, state->anchorTools.y + 8, 
+        state->anchorVisuals.x - state->anchorTools.x - 24, 24 }, "#131#BUILD PROJECT for SELECTED TARGET PLATFORM");
 
     // Visuals options
     GuiLabel((Rectangle){ state->anchorVisuals.x + 10, state->anchorVisuals.y + 8, 60, 24 }, "Style:");
