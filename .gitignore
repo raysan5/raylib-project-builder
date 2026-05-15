@@ -73,6 +73,7 @@ android.*
 
 # WebAssembly release files
 *.data
+!*.rc.data
 *.wasm
 *.html
 *.js

@@ -9,7 +9,7 @@ BEGIN
     BLOCK "040904E4"    // English US
     BEGIN
       VALUE "CompanyName", "raylib technologies"
-      VALUE "FileDescription", "raylib project builder | A simple and easy-to-use raylib project builder"
+      VALUE "FileDescription", "rpb | A simple and easy-to-use raylib project builder"
       VALUE "FileVersion", "1.0"
       VALUE "InternalName", "rpb"
       VALUE "LegalCopyright", "(c) 2023 raylib technologies (@raylibtech)"
