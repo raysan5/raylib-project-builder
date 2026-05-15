@@ -813,7 +813,7 @@ int rini_set_value_text(rini_data *data, const char *key, const char *text, cons
             if (strcmp(key, data->values[i].key) == 0) // Key found
             {
                 memset(data->values[i].text, 0, RINI_MAX_TEXT_SIZE);
-                memcpy(data->values[i].text, text, strlen(text));
+                if (text != NULL) memcpy(data->values[i].text, text, strlen(text));
 
                 if (desc != NULL)
                 {
