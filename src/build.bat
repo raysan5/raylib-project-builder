@@ -8,7 +8,7 @@ cd %~dp0
 :: > Generating project
 :: --------------------------
 cmd /c mingw32-make ^
-PROJECT_PATH=C:\GitHub\rpb ^
+PROJECT_PATH=. ^
 PROJECT_NAME=rpb ^
 PROJECT_VERSION=1.0 ^
 PROJECT_DESCRIPTION="A simple and easy-to-use raylib project builder" ^
