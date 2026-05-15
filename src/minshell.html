@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 
-    <title>raylib project builder | A simple and easy-to-use raylib project builder</title>
+    <title>rpb | A simple and easy-to-use raylib project builder</title>
 
     <meta name="title" content="raylib project builder by raylib technologies">
     <meta name="description" content="A simple and easy-to-use raylib project builder">
@@ -33,18 +33,30 @@
     <!-- Favicon -->
     <link rel="shortcut icon" href="https://www.raylibtech.com/images/tools/rpb.ico">
     <style>
-        body { font-family: arial; margin: 0px; background-color: black; padding: none; overflow: hidden; }
-        .emscripten { padding-right: 0; margin-left: auto; margin-right: auto; display: block; }
-        div.emscripten { text-align: center; }
-
-        /* NOTE: Canvas *must not* have any border or padding, or mouse coords will be wrong */
-        canvas.emscripten { border: 0px none; background: black; }
+        body { 
+          margin: 0px; 
+          overflow: hidden; 
+          background-color: black;
+        }
+		div.emscripten { 
+		  text-align: center;
+	    }
+        canvas.emscripten { 
+          border: 0px none; 
+          background-color: black;
+          padding-left: 0;
+          padding-right: 0;
+          margin-left: auto;
+          margin-right: auto;
+          display: block;
+        }
     </style>
     <script type='text/javascript' src="https://cdn.jsdelivr.net/gh/eligrey/FileSaver.js/dist/FileSaver.min.js"> </script>
     <script type='text/javascript'>
         function saveFileFromMEMFSToDisk(memoryFSname, localFSname)     // This can be called by C/C++ code
         {
-            var isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+            var isSafari = false; // Not supported, navigator.userAgent access is being restricted
+            //var isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
             var data = FS.readFile(memoryFSname);
             var blob;
 
