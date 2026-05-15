@@ -13,7 +13,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>ProductName</string>
+	<string>rpb</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleVersion</key>
@@ -23,7 +23,7 @@
 	<key>LSMinimumSystemVersion</key>
 	<string>10.12</string>
 	<key>NSHumanReadableCopyright</key>
-	<string>Copyright (c) 2023 raylib technologies (@raylibtech)</string>
+	<string>Copyright (c) 2026 Ramon Santamaria (@raysan5)</string>
     <key>CFBundleSignature</key>
     <string>????</string>
 </dict>
