@@ -1207,7 +1207,7 @@ static void LoadApplicationConfig(void)
 // Save application configuration
 static void SaveApplicationConfig(void)
 {
-    rini_data config = rini_load(NULL);   // Create empty config with 32 entries (RINI_MAX_CONFIG_CAPACITY)
+    rini_data config = rini_load(NULL);   // Create empty config with RINI_MAX_VALUE_CAPACITY entries
 
     // Define header comment lines
     rini_set_comment_line(&config, " ");   // Empty comment line, but including comment prefix delimiter
