@@ -191,7 +191,7 @@ void GuiMainToolbar(GuiMainToolbarState *state)
     // Tool options
     GuiSetTooltip("Build project for selected platform (LCTRL+B)");
     state->btnBuildProjectPressed = GuiButton((Rectangle){ state->anchorTools.x + 12, state->anchorTools.y + 8, 
-        state->anchorVisuals.x - state->anchorTools.x - 24, 24 }, "#131#BUILD PROJECT for SELECTED TARGET PLATFORM");
+        state->anchorVisuals.x - state->anchorTools.x - 24, 24 }, "#131#BUILD PROJECT");
 
     // Visuals options
     GuiLabel((Rectangle){ state->anchorVisuals.x + 10, state->anchorVisuals.y + 8, 60, 24 }, "Style:");
