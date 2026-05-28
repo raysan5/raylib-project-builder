@@ -24,8 +24,8 @@ jobs:
       PROJECT_REPO_NAME: ${{ github.event.repository.name }}
       PROJECT_BUILD_PATH: "${{ github.event.repository.name }}\\projects\\VS2022\\build\\rpb\\bin\\x64\\Release"
       PROJECT_RELEASE_PATH: rpb_dev_win_x64
-      PROJECT_RESOURCES_SRC_PATH: src\template
-      PROJECT_RESOURCES_DST_PATH: template
+      PROJECT_RESOURCES_SRC_PATH: src\resources
+      PROJECT_RESOURCES_DST_PATH: resources
 
     steps:
     - name: Checkout this repo
