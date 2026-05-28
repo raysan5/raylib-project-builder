@@ -246,7 +246,7 @@ const char *hostArch = "x86";
 const char *hostArch = "arm64";
 #elif defined(mips) || defined(__mips__) || defined(__mips)
 const char *hostArch = "MIPS";
-#elif
+#else
 const char *hostArch = "-";
 #endif
 
