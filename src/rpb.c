@@ -246,6 +246,8 @@ const char *hostArch = "x86";
 const char *hostArch = "arm64";
 #elif defined(mips) || defined(__mips__) || defined(__mips)
 const char *hostArch = "MIPS";
+#elif
+const char *hostArch = "-";
 #endif
 
 static const char *platformNames[] = { "Windows", "Linux", "macOS", "Wasm", "Android", "FreeBSD", "DRM", "ESP32", "Dreamcast", "Switch" };
