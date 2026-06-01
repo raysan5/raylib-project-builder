@@ -195,7 +195,6 @@ static bool saveChangesRequired = false;    // Flag to notice save changes are r
 #define MAX_PLATFORMS   10
 static Texture2D texPlatforms = { 0 };      // Platform logos texture for toggles
 static bool platformEnabled[MAX_PLATFORMS] = { 0 };
-static int currentPlatform = RPC_PLATFORM_WINDOWS;
 
 static int currentTab = 1;
 char *tabText[6] = {
@@ -227,15 +226,19 @@ static bool buildPlatformsEnabled[10] = {
 #if defined(_WIN32)
 static int hostPlatformId = 0;
 const char *hostPlatform = "Windows";
+static int currentPlatform = RPC_PLATFORM_WINDOWS;
 #elif defined(__linux__)
 static int hostPlatformId = 1;
 const char *hostPlatform = "Linux";
+static int currentPlatform = RPC_PLATFORM_LINUX;
 #elif defined(__APPLE__)
 static int hostPlatformId = 2;
 const char *hostPlatform = "macOS";
+static int currentPlatform = RPC_PLATFORM_MACOS;
 #elif defined(__EMSCRIPTEN__)
 static int hostPlatformId = 3;
 const char *hostPlatform = "Web";
+static int currentPlatform = RPC_PLATFORM_WASM;
 #endif
 
 #if defined(__x86_64__) || defined(_M_X64)
