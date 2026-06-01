@@ -1115,7 +1115,7 @@ typedef enum {
         #error "RAYGUI: if RAYGUI_MALLOC, RAYGUI_CALLOC, or RAYGUI_FREE is customized, all three must be customized"
     #endif
 #else
-    #include <stdlib.h>             // Required for: malloc(), calloc(), free() [GuiLoadStyle(), GuiLoadIcons()]
+    #include <stdlib.h>         // Required for: malloc(), calloc(), free() [GuiLoadStyle(), GuiLoadIcons()]
 
     #define RAYGUI_MALLOC(sz)       malloc(sz)
     #define RAYGUI_CALLOC(n,sz)     calloc(n,sz)
