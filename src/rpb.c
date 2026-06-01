@@ -1515,7 +1515,7 @@ static int BuildProject(rpcProjectConfig project, int platform)
             if (runProjectRequired)
             {
                 if (FileExists(TextFormat("%s/%s", buildProjectPath, rpcGetText(project, "PROJECT_INTERNAL_NAME"))))
-                    system(TextFormat("./%s/%s", buildProjectPath, rpcGetText(project, "PROJECT_INTERNAL_NAME")));
+                    system(TextFormat("%s/%s", buildProjectPath, rpcGetText(project, "PROJECT_INTERNAL_NAME")));
                 else LOG("WARNING: Project executable file not found\n");
             }
 #else
@@ -1524,10 +1524,12 @@ static int BuildProject(rpcProjectConfig project, int platform)
         } break;
         case RPC_PLATFORM_MACOS:
         {
+            // TODO: MacOS building
         } break;
         case RPC_PLATFORM_WASM:
         {
             // Host platform: Windows/Linux/macOS --> Considering all hosts
+            // WARNING: Emscripten must be installed!
 
             LOG("INFO: Building project for platform: %s\n", platformNames[platform]);
 
@@ -1543,13 +1545,17 @@ static int BuildProject(rpcProjectConfig project, int platform)
             {
                 // Rebuild raylib library for current platform
                 ChangeDirectory(TextFormat("%s", rpcGetText(project, "RAYLIB_SRC_PATH")));
-                system("make PLATFORM=PLATFORM_WEB -B");
+                // TODO: Check if we have "raylib.h rcore.c rshapes.c...", RAYLIB_SRC_PATH could
+                // not be properly configured and be left in another folder with a Makefile (same rpb directory)
+                //system("make PLATFORM=PLATFORM_WEB -B");
             }
 
             // 3. Build project (Makefile)
             // NOTE: Required resources should be already in Makefile
+            // WARNING: raylib.h can not be found by emcc /usr/local/include must be added
+            // WARNING: Path to libraylib.web.a must be provided to be found
             ChangeDirectory(TextFormat("%s", buildProjectPath));
-            system(TextFormat("make -C %s/src PLATFORM=PLATFORM_WEB BUILD_WEB_SHELL=%s/%s BUILD_WEB_HEAP_SIZE=%i -B", GetDirectoryPath(inProjectFilePath), 
+            system(TextFormat("make -C %s/src PLATFORM=PLATFORM_WEB RAYLIB_LIB_PATH=/home/ray/GitHub/raylib/src/ BUILD_WEB_SHELL=%s/%s BUILD_WEB_HEAP_SIZE=%iMB -B", GetDirectoryPath(inProjectFilePath), 
                 GetDirectoryPath(inProjectFilePath), rpcGetText(project, "PLATFORM_WEB_SHELL_FILE"),
                 rpcGetValue(project, "PLATFORM_WEB_HEAP_MEMORY_SIZE")));
 
@@ -1568,8 +1574,18 @@ static int BuildProject(rpcProjectConfig project, int platform)
                     // WARNING: Example download is asynchronous so reading fails on next step
                     // when looking for a file that could not have been downloaded yet
                     ChangeDirectory(TextFormat("%s", buildProjectPath));
-                    system("start C:\\python\\python -m http.server 8080"); // Init localhost just once
-                    system(TextFormat("start explorer \"http:\\localhost:8080/%s.html", rpcGetText(project, "PROJECT_INTERNAL_NAME")));
+                #if defined(_WIN32)
+                    system("start python -m http.server 8080"); // Init localhost just once
+                    system(TextFormat("start explorer \"http://localhost:8080/%s.html\"", rpcGetText(project, "PROJECT_INTERNAL_NAME")));
+                #elif defined(__linux__)
+                    system("pwd");
+                    // WARNING: python3 process is left running in background
+                    system("python3 -m http.server 8080 &"); // Init localhost just once
+                    system(TextFormat("xdg-open http://localhost:8080/%s.html", rpcGetText(project, "PROJECT_INTERNAL_NAME")));
+                #elif defined(__APPLE__)
+                    system("python3 -m http.server 8080 &"); // Init localhost just once
+                    system(TextFormat("open http://localhost:8080/%s.html", rpcGetText(project, "PROJECT_INTERNAL_NAME")));
+                #endif
                 }
             }
 
