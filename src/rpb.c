@@ -341,8 +341,9 @@ static int BuildProject(rpcProjectConfig project, int platform); // Build projec
 
 // Auxiliar functions
 static int DirectoryCopy(const char *srcPath, const char *dstPath);
+#if defined(_WIN32)
 static const char *PathToWSL(const char *path);
-
+#endif
 //------------------------------------------------------------------------------------
 
 // Load/Save application configuration
@@ -1280,7 +1281,6 @@ static void ProcessCommandLine(int argc, char *argv[])
 {
     // CLI required variables
     bool showUsageInfo = false;         // Toggle command line usage info
-    int outputFormat = 0;               // Supported output formats
 
 #if defined(COMMAND_LINE_ONLY)
     if (argc == 1) showUsageInfo = true;
@@ -1629,6 +1629,7 @@ static int DirectoryCopy(const char *srcPath, const char *dstPath)
     return result;
 }
 
+#if defined(_WIN32)
 // Convert windows path to WSL
 static const char *PathToWSL(const char *path)
 {
@@ -1661,6 +1662,7 @@ static const char *PathToWSL(const char *path)
 
     return result;
 }
+#endif
 
 // Load/Save application configuration functions
 //------------------------------------------------------------------------------------
