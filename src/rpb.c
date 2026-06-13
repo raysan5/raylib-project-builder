@@ -1637,15 +1637,27 @@ static int BuildProject(rpcProjectConfig project, int platform)
         } break;
         case RPC_PLATFORM_ESP32:
         {
+            #if defined(_WIN32)
 
+            #elif defined(__linux__)
+
+            #endif
         } break;
         case RPC_PLATFORM_DREAMCAST:
         {
+            #if defined(_WIN32)
 
+            #elif defined(__linux__)
+
+            #endif
         } break;
         case RPC_PLATFORM_SWITCH:
         {
+            #if defined(_WIN32)
 
+            #elif defined(__linux__)
+
+            #endif
         } break;
         default:
         {
