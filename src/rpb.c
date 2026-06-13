@@ -1527,7 +1527,46 @@ static int BuildProject(rpcProjectConfig project, int platform)
         } break;
         case RPC_PLATFORM_MACOS:
         {
-            // TODO: MacOS building
+#if defined(__APPLE__)
+            // Host platform: macOS --> Requires raylib library installed
+
+            LOG("INFO: Building project for platform: %s\n", platformNames[platform]);
+
+            // 1. Setup environment 
+            // NOTE: Create required dirctory structure for application
+            ChangeDirectory(TextFormat("%s", buildProjectPath));
+            MakeDirectory(TextFormat("%s.app/Contents/MacOS", rpcGetText(project, "PROJECT_INTERNAL_NAME"));
+            MakeDirectory(TextFormat("%s.app/Contents/Resources", rpcGetText(project, "PROJECT_INTERNAL_NAME"));
+
+            // 2. Build raylib library
+            if (rpcGetValue(project, "RAYLIB_FLAG_BUILDING_REQUIRED") == 1)
+            {
+                // Rebuild raylib library for current platform
+                ChangeDirectory(TextFormat("%s", rpcGetText(project, "RAYLIB_SRC_PATH")));
+                system("wsl make PLATFORM=PLATFORM_DESKTOP -B");
+            }
+
+            // 3. Build project (Makefile)
+            ChangeDirectory(TextFormat("%s\\src", GetDirectoryPath(inProjectFilePath)));
+            system(TextFormat("make PLATFORM=PLATFORM_DESKTOP PROJECT_BUILD_PATH=%s -B", buildProjectPath))));
+
+            // 4. Process assets
+            // NOTE: Copy to destination assets output, directory created automatically
+            DirectoryCopy(TextFormat("%s/%s", GetDirectoryPath(inProjectFilePath), rpcGetText(project, "PROJECT_ASSETS_PATH")),
+                TextFormat("%s/%s", buildProjectPath, rpcGetText(project, "PROJECT_ASSETS_OUTPUT_PATH")));
+
+            // 5. Package project (...)
+
+            // 6. Run project
+            if (runProjectRequired)
+            {
+                if (FileExists(TextFormat("%s/%s", buildProjectPath, rpcGetText(project, "PROJECT_INTERNAL_NAME"))))
+                    system(TextFormat("./%s/%s", buildProjectPath, rpcGetText(project, "PROJECT_INTERNAL_NAME")));
+                else LOG("WARNING: Project executable file not found\n");
+            }
+#else
+            LOG("WARNING: Target platform not supported on this host platform\n");
+#endif
         } break;
         case RPC_PLATFORM_WASM:
         {
@@ -1598,15 +1637,27 @@ static int BuildProject(rpcProjectConfig project, int platform)
         } break;
         case RPC_PLATFORM_ESP32:
         {
+            #if defined(_WIN32)
 
+            #elif defined(__linux__)
+
+            #endif
         } break;
         case RPC_PLATFORM_DREAMCAST:
         {
+            #if defined(_WIN32)
 
+            #elif defined(__linux__)
+
+            #endif
         } break;
         case RPC_PLATFORM_SWITCH:
         {
+            #if defined(_WIN32)
 
+            #elif defined(__linux__)
+
+            #endif
         } break;
         default:
         {
