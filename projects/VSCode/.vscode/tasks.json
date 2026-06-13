@@ -22,7 +22,7 @@
             },
             "osx": {
                 "args": [
-                    "RAYLIB_SRC_PATH=../../../raylib/src",
+                    "RAYLIB_SRC_PATH=../../raylib/src",
                     "PLATFORM=PLATFORM_DESKTOP",
                     "BUILD_MODE=DEBUG",
                     "-B"
