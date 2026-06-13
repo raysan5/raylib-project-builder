@@ -1530,13 +1530,13 @@ static int BuildProject(rpcProjectConfig project, int platform)
 #if defined(__APPLE__)
             // Host platform: macOS --> Requires raylib library installed
 
-            LOG("INFO: Building project for platform: %s\n", platformNames[platform]);
+            LOG("INFO: Building project for platform: %s\n", platformNames[platform]); // TODO: Log architecture: macOS (arm64)
 
             // 1. Setup environment 
             // NOTE: Create required dirctory structure for application
             ChangeDirectory(TextFormat("%s", buildProjectPath));
-            MakeDirectory(TextFormat("%s.app/Contents/MacOS", rpcGetText(project, "PROJECT_INTERNAL_NAME"));
-            MakeDirectory(TextFormat("%s.app/Contents/Resources", rpcGetText(project, "PROJECT_INTERNAL_NAME"));
+            MakeDirectory(TextFormat("%s.app/Contents/MacOS", rpcGetText(project, "PROJECT_INTERNAL_NAME")));
+            MakeDirectory(TextFormat("%s.app/Contents/Resources", rpcGetText(project, "PROJECT_INTERNAL_NAME")));
 
             // 2. Build raylib library
             if (rpcGetValue(project, "RAYLIB_FLAG_BUILDING_REQUIRED") == 1)
@@ -1547,21 +1547,24 @@ static int BuildProject(rpcProjectConfig project, int platform)
             }
 
             // 3. Build project (Makefile)
-            ChangeDirectory(TextFormat("%s\\src", GetDirectoryPath(inProjectFilePath)));
-            system(TextFormat("make PLATFORM=PLATFORM_DESKTOP PROJECT_BUILD_PATH=%s -B", buildProjectPath))));
+            ChangeDirectory(TextFormat("%s/src", GetDirectoryPath(inProjectFilePath)));
+            system(TextFormat("make PLATFORM=PLATFORM_DESKTOP PROJECT_BUILD_PATH=%s%s.app/Contents/MacOS RAYLIB_SRC_PATH=%s -B", 
+                buildProjectPath, rpcGetText(project, "PROJECT_INTERNAL_NAME"), "/Users/raysan5/GitHub/raylib/src"));
 
             // 4. Process assets
             // NOTE: Copy to destination assets output, directory created automatically
             DirectoryCopy(TextFormat("%s/%s", GetDirectoryPath(inProjectFilePath), rpcGetText(project, "PROJECT_ASSETS_PATH")),
-                TextFormat("%s/%s", buildProjectPath, rpcGetText(project, "PROJECT_ASSETS_OUTPUT_PATH")));
+                TextFormat("%s%s.app/Contents/Resources", buildProjectPath, rpcGetText(project, "PROJECT_INTERNAL_NAME")));
 
             // 5. Package project (...)
+            FileCopy(TextFormat("%s/src/Info.plist", GetDirectoryPath(inProjectFilePath)),
+                TextFormat("%s%s.app/Contents/Info.plist", buildProjectPath, rpcGetText(project, "PROJECT_INTERNAL_NAME")));
 
             // 6. Run project
             if (runProjectRequired)
             {
-                if (FileExists(TextFormat("%s/%s", buildProjectPath, rpcGetText(project, "PROJECT_INTERNAL_NAME"))))
-                    system(TextFormat("./%s/%s", buildProjectPath, rpcGetText(project, "PROJECT_INTERNAL_NAME")));
+                if (FileExists(TextFormat("%s%s.app/Contents/MacOS/%s", buildProjectPath, rpcGetText(project, "PROJECT_INTERNAL_NAME"), rpcGetText(project, "PROJECT_INTERNAL_NAME"))))
+                    system(TextFormat("%s%s.app/Contents/MacOS/%s", buildProjectPath, rpcGetText(project, "PROJECT_INTERNAL_NAME"), rpcGetText(project, "PROJECT_INTERNAL_NAME")));
                 else LOG("WARNING: Project executable file not found\n");
             }
 #else
