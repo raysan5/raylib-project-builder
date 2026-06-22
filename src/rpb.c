@@ -338,7 +338,8 @@ static void UpdateDrawFrame(void);                          // Update and draw o
 static int BuildProject(rpcProjectConfig project, int platform, const char *buildPath); // Build project for target platform
 
 // Auxiliar functions
-static int DirectoryCopy(const char *srcPath, const char *dstPath);
+static int DirectoryCopy(const char *srcPath, const char *dstPath); // Copy full directory with all content
+static bool IsPathAbsolute(const char *path);               // Check if provided path is an absolute path
 #if defined(_WIN32)
 static const char *PathToWSL(const char *path);
 #endif
@@ -1713,6 +1714,26 @@ static int DirectoryCopy(const char *srcPath, const char *dstPath)
     else LOG("WARNING: Source directory does not exist");
 
     return result;
+}
+
+// Check if provided path is an absolute path
+static bool IsPathAbsolute(const char *path)
+{
+    if ((path == NULL) || (path[0] == '\0')) return false;
+
+#ifdef _WIN32
+    // UNC path (\\server\share)
+    if (path[0] == '\\' && path[1] == '\\') return true;
+    // Drive letter (e.g. C:\ or D:/)
+    if (isalpha((unsigned char)path[0]) &&
+        (path[1] == ':') &&
+        ((path[2] == '\\') || (path[2] == '/'))) return true;
+    return false;
+#else
+    // POSIX: must start with /
+    if (path[0] == '/') return true;
+    else return false;
+#endif
 }
 
 #if defined(_WIN32)
