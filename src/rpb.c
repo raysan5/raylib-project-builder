@@ -1343,6 +1343,7 @@ static void ProcessCommandLine(int argc, char *argv[])
 
 // Build project for selected platform
 // WARNING: Build target platform support depends on host platform
+static int BuildProject(rpcProjectConfig project, int platform, const char *buildPath)
 {
     int result = 0;
 
