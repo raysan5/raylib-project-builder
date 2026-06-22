@@ -335,7 +335,7 @@ static void ProcessCommandLine(int argc, char *argv[]);     // Process command l
 static void UpdateDrawFrame(void);                          // Update and draw one frame
 
 // Load/Save/Export data functions
-static int BuildProject(rpcProjectConfig project, int platform); // Build project for target platform
+static int BuildProject(rpcProjectConfig project, int platform, const char *buildPath); // Build project for target platform
 
 // Auxiliar functions
 static int DirectoryCopy(const char *srcPath, const char *dstPath);
@@ -1148,7 +1148,7 @@ static void UpdateDrawFrame(void)
             if (result == 1)
             {
                 // Build project to output directory defined
-                BuildProject(project, currentPlatform);
+                BuildProject(project, currentPlatform, outProjectFilePath);
 
             #if defined(PLATFORM_WEB)
                 // Download file from MEMFS (emscripten memory filesystem)
@@ -1342,7 +1342,6 @@ static void ProcessCommandLine(int argc, char *argv[])
 
 // Build project for selected platform
 // WARNING: Build target platform support depends on host platform
-static int BuildProject(rpcProjectConfig project, int platform)
 {
     int result = 0;
 
@@ -1370,12 +1369,46 @@ static int BuildProject(rpcProjectConfig project, int platform)
 
     LOG("INFO: Starting project building for requested platform...\n");
 
+    // Check build output path
+    // WARNING: Using global inProjectFilePath to get output path
+    char buildOutputPath[256] = { 0 }; // Project build path
+    if (buildPath[0] == '\0')
+    {
+        // Read default built path from .rpc file (relative to .rpc location)
+        //strcpy(buildOutputPath, TextFormat("%s/%s", GetDirectoryPath(inProjectFilePath), rpcGetText(project, "BUILD_OUTPUT_PATH")));
+#if defined(_WIN32)
+        TextCopy(buildOutputPath, TextFormat("%s\\%s", GetDirectoryPath(inProjectFilePath), rpcGetText(project, "BUILD_OUTPUT_PATH")));
+#else
+        TextCopy(buildOutputPath, TextFormat("%s/%s", GetDirectoryPath(inProjectFilePath), rpcGetText(project, "BUILD_OUTPUT_PATH")));
+#endif
+    }
+    else
+    {
+        // Validate provided build path
+        if (IsPathAbsolute(buildPath)) strcpy(buildOutputPath, buildPath);
+        else
+        {
+#if defined(_WIN32)
+            TextCopy(buildOutputPath, TextFormat("%s\\%s", GetWorkingDirectory(), buildPath));
+#else
+            TextCopy(buildOutputPath, TextFormat("%s/%s", GetWorkingDirectory(), buildPath));
+#endif
+        }
+    }
+
+    if (!DirectoryExists(buildOutputPath))
+    {
+        // Create build directory if required
+        MakeDirectory(buildOutputPath);
+        LOG("INFO: [%s] Created build output path", buildOutputPath);
+    }
+
 #if defined(__EMSCRIPTEN__)
     // TODO: Connect to server to build project remotely
 #endif
 //#else
 
-    switch (platform)   // Target platform
+    switch (platform) // Target platform
     {
         case RPC_PLATFORM_WINDOWS:
         {
@@ -1396,8 +1429,8 @@ static int BuildProject(rpcProjectConfig project, int platform)
             }
             else
             {
-                // 1. Setup environment 
-                PUTENV(TextFormat("PROJECT_BUILD_PATH=%s", buildProjectPath));
+                // 1. Setup environment
+                PUTENV(TextFormat("PROJECT_BUILD_PATH=%s", buildOutputPath));
                 PUTENV(TextFormat("RAYLIB_DIR=%s", rpcGetText(project, "RAYLIB_SRC_PATH")));
                 PUTENV(TextFormat("PATH=%PATH%;%s", rpcGetText(project, "PLATFORM_WINDOWS_W64DEVKIT_PATH")));
 
@@ -1409,22 +1442,22 @@ static int BuildProject(rpcProjectConfig project, int platform)
                 }
 
                 // 3. Build project (Makefile)
-                ChangeDirectory(TextFormat("%s", buildProjectPath));
+                ChangeDirectory(TextFormat("%s", buildOutputPath));
                 system(TextFormat("make -C %s PLATFORM=PLATFORM_DESKTOP -B", TextFormat("%s/src", GetDirectoryPath(inProjectFilePath))));
             }
 
             // 4. Process assets
             // NOTE: Copy to destination assets output, directory created automatically
             DirectoryCopy(TextFormat("%s/%s", GetDirectoryPath(inProjectFilePath), rpcGetText(project, "PROJECT_ASSETS_PATH")),
-                TextFormat("%s/%s", buildProjectPath, rpcGetText(project, "PROJECT_ASSETS_OUTPUT_PATH")));
+                TextFormat("%s/%s", buildOutputPath, rpcGetText(project, "PROJECT_ASSETS_OUTPUT_PATH")));
 
             // 5. Package project (...)
 
             // 6. Run project
             if (runProjectRequired)
             {
-                if (FileExists(TextFormat("%s/%s.exe", buildProjectPath, rpcGetText(project, "PROJECT_INTERNAL_NAME"))))
-                    system(TextFormat("%s/%s.exe", buildProjectPath, rpcGetText(project, "PROJECT_INTERNAL_NAME")));
+                if (FileExists(TextFormat("%s/%s.exe", buildOutputPath, rpcGetText(project, "PROJECT_INTERNAL_NAME"))))
+                    system(TextFormat("%s/%s.exe", buildOutputPath, rpcGetText(project, "PROJECT_INTERNAL_NAME")));
                 else LOG("WARNING: Project executable file not found\n");
             }
 #else
@@ -1436,7 +1469,7 @@ static int BuildProject(rpcProjectConfig project, int platform)
 #if defined(_WIN32)
             // Host platform: Windows --> Requires WSL2 installed with required libraries
 
-            // 1. Setup environment 
+            // 1. Setup environment
             PUTENV("PATH=%PATH%;C:\\Windows\\System32"); // Make sure WSL is available in the path
 
             // 2. Build raylib library
@@ -1453,27 +1486,27 @@ static int BuildProject(rpcProjectConfig project, int platform)
 
             // 3. Build project (Makefile)
             ChangeDirectory(TextFormat("%s\\src", GetDirectoryPath(inProjectFilePath)));
-            system(TextFormat("wsl make PLATFORM=PLATFORM_DESKTOP PROJECT_BUILD_PATH=%s RAYLIB_SRC_PATH=$(wslpath -a %s) -B", 
-                PathToWSL(buildProjectPath), rpcGetText(project, "RAYLIB_SRC_PATH")));
+            system(TextFormat("wsl make PLATFORM=PLATFORM_DESKTOP PROJECT_BUILD_PATH=%s RAYLIB_SRC_PATH=$(wslpath -a %s) -B",
+                PathToWSL(buildOutputPath), rpcGetText(project, "RAYLIB_SRC_PATH")));
 
             // 4. Process assets
             // TODO: REVIEW: Copy to destination assets output, directory created automatically
             DirectoryCopy(TextFormat("%s/%s", PathToWSL(GetDirectoryPath(inProjectFilePath)), rpcGetText(project, "PROJECT_ASSETS_PATH")),
-                TextFormat("%s/%s", PathToWSL(buildProjectPath), rpcGetText(project, "PROJECT_ASSETS_OUTPUT_PATH")));
-            //system(TextFormat("wsl cp %s %s", rpcGetText(project, "PROJECT_INTERNAL_NAME"), PathToWSL(buildProjectPath)));
+                TextFormat("%s/%s", PathToWSL(buildOutputPath), rpcGetText(project, "PROJECT_ASSETS_OUTPUT_PATH")));
+            //system(TextFormat("wsl cp %s %s", rpcGetText(project, "PROJECT_INTERNAL_NAME"), PathToWSL(buildOutputPath)));
 
             // 5. Package project (...)
 
             // 6. Run project
             if (runProjectRequired)
             {
-                system(TextFormat("wsl %s/%s", PathToWSL(buildProjectPath), rpcGetText(project, "PROJECT_INTERNAL_NAME")));
+                system(TextFormat("wsl %s/%s", PathToWSL(buildOutputPath), rpcGetText(project, "PROJECT_INTERNAL_NAME")));
             }
 #elif defined(__linux__)
             // Host platform: Linux --> Requires raylib library installed
 
-            // 1. Setup environment 
-            PUTENV(TextFormat("PROJECT_BUILD_PATH=%s", buildProjectPath));
+            // 1. Setup environment
+            PUTENV(TextFormat("PROJECT_BUILD_PATH=%s", buildOutputPath));
 
             // 2. Build raylib library
             if (rpcGetValue(project, "RAYLIB_FLAG_BUILDING_REQUIRED") == 1)
@@ -1483,21 +1516,21 @@ static int BuildProject(rpcProjectConfig project, int platform)
             }
 
             // 3. Build project (Makefile)
-            ChangeDirectory(TextFormat("%s", buildProjectPath));
+            ChangeDirectory(TextFormat("%s", buildOutputPath));
             system(TextFormat("make -C %s PLATFORM=PLATFORM_DESKTOP -B", TextFormat("%s/src", GetDirectoryPath(inProjectFilePath))));
 
             // 4. Process assets
             // NOTE: Copy to destination assets output, directory created automatically
             DirectoryCopy(TextFormat("%s/%s", GetDirectoryPath(inProjectFilePath), rpcGetText(project, "PROJECT_ASSETS_PATH")),
-                TextFormat("%s/%s", buildProjectPath, rpcGetText(project, "PROJECT_ASSETS_OUTPUT_PATH")));
+                TextFormat("%s/%s", buildOutputPath, rpcGetText(project, "PROJECT_ASSETS_OUTPUT_PATH")));
 
             // 5. Package project (...)
 
             // 6. Run project
             if (runProjectRequired)
             {
-                if (FileExists(TextFormat("%s/%s", buildProjectPath, rpcGetText(project, "PROJECT_INTERNAL_NAME"))))
-                    system(TextFormat("%s/%s", buildProjectPath, rpcGetText(project, "PROJECT_INTERNAL_NAME")));
+                if (FileExists(TextFormat("%s/%s", buildOutputPath, rpcGetText(project, "PROJECT_INTERNAL_NAME"))))
+                    system(TextFormat("%s/%s", buildOutputPath, rpcGetText(project, "PROJECT_INTERNAL_NAME")));
                 else LOG("WARNING: Project executable file not found\n");
             }
 #else
@@ -1511,9 +1544,9 @@ static int BuildProject(rpcProjectConfig project, int platform)
 
             LOG("INFO: Building project for platform: %s\n", platformNames[platform]); // TODO: Log architecture: macOS (arm64)
 
-            // 1. Setup environment 
+            // 1. Setup environment
             // NOTE: Create required dirctory structure for application
-            ChangeDirectory(TextFormat("%s", buildProjectPath));
+            ChangeDirectory(TextFormat("%s", buildOutputPath));
             MakeDirectory(TextFormat("%s.app/Contents/MacOS", rpcGetText(project, "PROJECT_INTERNAL_NAME")));
             MakeDirectory(TextFormat("%s.app/Contents/Resources", rpcGetText(project, "PROJECT_INTERNAL_NAME")));
 
@@ -1527,23 +1560,23 @@ static int BuildProject(rpcProjectConfig project, int platform)
 
             // 3. Build project (Makefile)
             ChangeDirectory(TextFormat("%s/src", GetDirectoryPath(inProjectFilePath)));
-            system(TextFormat("make PLATFORM=PLATFORM_DESKTOP PROJECT_BUILD_PATH=%s%s.app/Contents/MacOS RAYLIB_SRC_PATH=%s -B", 
-                buildProjectPath, rpcGetText(project, "PROJECT_INTERNAL_NAME"), "/Users/raysan5/GitHub/raylib/src"));
+            system(TextFormat("make PLATFORM=PLATFORM_DESKTOP PROJECT_BUILD_PATH=%s%s.app/Contents/MacOS RAYLIB_SRC_PATH=%s -B",
+                buildOutputPath, rpcGetText(project, "PROJECT_INTERNAL_NAME"), "/Users/raysan5/GitHub/raylib/src"));
 
             // 4. Process assets
             // NOTE: Copy to destination assets output, directory created automatically
             DirectoryCopy(TextFormat("%s/%s", GetDirectoryPath(inProjectFilePath), rpcGetText(project, "PROJECT_ASSETS_PATH")),
-                TextFormat("%s%s.app/Contents/Resources", buildProjectPath, rpcGetText(project, "PROJECT_INTERNAL_NAME")));
+                TextFormat("%s%s.app/Contents/Resources", buildOutputPath, rpcGetText(project, "PROJECT_INTERNAL_NAME")));
 
             // 5. Package project (...)
             FileCopy(TextFormat("%s/src/Info.plist", GetDirectoryPath(inProjectFilePath)),
-                TextFormat("%s%s.app/Contents/Info.plist", buildProjectPath, rpcGetText(project, "PROJECT_INTERNAL_NAME")));
+                TextFormat("%s%s.app/Contents/Info.plist", buildOutputPath, rpcGetText(project, "PROJECT_INTERNAL_NAME")));
 
             // 6. Run project
             if (runProjectRequired)
             {
-                if (FileExists(TextFormat("%s%s.app/Contents/MacOS/%s", buildProjectPath, rpcGetText(project, "PROJECT_INTERNAL_NAME"), rpcGetText(project, "PROJECT_INTERNAL_NAME"))))
-                    system(TextFormat("%s%s.app/Contents/MacOS/%s", buildProjectPath, rpcGetText(project, "PROJECT_INTERNAL_NAME"), rpcGetText(project, "PROJECT_INTERNAL_NAME")));
+                if (FileExists(TextFormat("%s%s.app/Contents/MacOS/%s", buildOutputPath, rpcGetText(project, "PROJECT_INTERNAL_NAME"), rpcGetText(project, "PROJECT_INTERNAL_NAME"))))
+                    system(TextFormat("%s%s.app/Contents/MacOS/%s", buildOutputPath, rpcGetText(project, "PROJECT_INTERNAL_NAME"), rpcGetText(project, "PROJECT_INTERNAL_NAME")));
                 else LOG("WARNING: Project executable file not found\n");
             }
 #else
@@ -1558,7 +1591,7 @@ static int BuildProject(rpcProjectConfig project, int platform)
             LOG("INFO: Building project for platform: %s\n", platformNames[platform]);
 
             // 1. Setup environment
-            PUTENV(TextFormat("PROJECT_BUILD_PATH=%s", buildProjectPath));
+            PUTENV(TextFormat("PROJECT_BUILD_PATH=%s", buildOutputPath));
 #if defined(_WIN32)
             PUTENV(TextFormat("RAYLIB_DIR=%s", rpcGetText(project, "RAYLIB_SRC_PATH")));
             PUTENV(TextFormat("PATH=%PATH%;%s", rpcGetText(project, "PLATFORM_WINDOWS_W64DEVKIT_PATH")));
@@ -1578,26 +1611,26 @@ static int BuildProject(rpcProjectConfig project, int platform)
             // NOTE: Required resources should be already in Makefile
             // WARNING: raylib.h can not be found by emcc /usr/local/include must be added
             // WARNING: Path to libraylib.web.a must be provided to be found
-            ChangeDirectory(TextFormat("%s", buildProjectPath));
-            system(TextFormat("make -C %s/src PLATFORM=PLATFORM_WEB RAYLIB_LIB_PATH=/home/ray/GitHub/raylib/src/ BUILD_WEB_SHELL=%s/%s BUILD_WEB_HEAP_SIZE=%iMB -B", GetDirectoryPath(inProjectFilePath), 
+            ChangeDirectory(TextFormat("%s", buildOutputPath));
+            system(TextFormat("make -C %s/src PLATFORM=PLATFORM_WEB RAYLIB_LIB_PATH=/home/ray/GitHub/raylib/src/ BUILD_WEB_SHELL=%s/%s BUILD_WEB_HEAP_SIZE=%iMB -B", GetDirectoryPath(inProjectFilePath),
                 GetDirectoryPath(inProjectFilePath), rpcGetText(project, "PLATFORM_WEB_SHELL_FILE"),
                 rpcGetValue(project, "PLATFORM_WEB_HEAP_MEMORY_SIZE")));
 
             // 4. Process assets (...)
-            // NOTE: Resources/assets already processed by emscripten building 
+            // NOTE: Resources/assets already processed by emscripten building
 
             // 5. Package project (...)
 
             // 6. Run project
             if (runProjectRequired)
             {
-                if (FileExists(TextFormat("%s/%s.html", buildProjectPath, rpcGetText(project, "PROJECT_INTERNAL_NAME"))) &&
-                    FileExists(TextFormat("%s/%s.wasm", buildProjectPath, rpcGetText(project, "PROJECT_INTERNAL_NAME"))) &&
-                    FileExists(TextFormat("%s/%s.js", buildProjectPath, rpcGetText(project, "PROJECT_INTERNAL_NAME"))))
+                if (FileExists(TextFormat("%s/%s.html", buildOutputPath, rpcGetText(project, "PROJECT_INTERNAL_NAME"))) &&
+                    FileExists(TextFormat("%s/%s.wasm", buildOutputPath, rpcGetText(project, "PROJECT_INTERNAL_NAME"))) &&
+                    FileExists(TextFormat("%s/%s.js", buildOutputPath, rpcGetText(project, "PROJECT_INTERNAL_NAME"))))
                 {
                     // WARNING: Example download is asynchronous so reading fails on next step
                     // when looking for a file that could not have been downloaded yet
-                    ChangeDirectory(TextFormat("%s", buildProjectPath));
+                    ChangeDirectory(TextFormat("%s", buildOutputPath));
                 #if defined(_WIN32)
                     system("start python -m http.server 8080"); // Init localhost just once
                     system(TextFormat("start explorer \"http://localhost:8080/%s.html\"", rpcGetText(project, "PROJECT_INTERNAL_NAME")));
@@ -1654,6 +1687,7 @@ static int BuildProject(rpcProjectConfig project, int platform)
 //--------------------------------------------------------------------------------------------
 // Auxiliar functions (utilities)
 //--------------------------------------------------------------------------------------------
+// Copy full directory with all content (including subdirs)
 static int DirectoryCopy(const char *srcPath, const char *dstPath)
 {
     int result = 0;
@@ -1694,11 +1728,10 @@ static const char *PathToWSL(const char *path)
     resultPtr += 5;
 
     // Process drive letter
-    if (isalpha(path[0]) && (path[1] == ':')) 
+    if (isalpha(path[0]) && (path[1] == ':'))
     {
         resultPtr[0] = tolower(path[0]);
         resultPtr++;
-
         path += 2; // Skip "C:"
     }
 
@@ -1706,9 +1739,7 @@ static const char *PathToWSL(const char *path)
     for (int i = 0; i < pathLen; i++)
     {
         char c = path[i];
-
         if (c == '\\') c = '/';
-
         resultPtr[i] = c;
     }
 
