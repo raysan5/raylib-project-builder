@@ -1221,42 +1221,55 @@ static void UpdateDrawFrame(void)
 // Show command line usage info
 static void ShowCommandLineInfo(void)
 {
-    printf("\n/////////////////////////////////////////////////////////////////////////////////\n");
-    printf("//                                                                               //\n");
-    printf("// %s v%s - %s                 //\n", toolName, toolVersion, toolDescription);
-    printf("// powered by raylib v%s and raygui v%s                                   //\n", RAYLIB_VERSION, RAYGUI_VERSION);
-    printf("// more info and bugs-report: github.com/raylibtech/rtools                       //\n");
-    printf("// feedback and support:      ray[at]raylibtech.com                              //\n");
-    printf("//                                                                               //\n");
-    printf("// Copyright (c) 2022-2026 raylib technologies (@raylibtech)                     //\n");
-    printf("//                                                                               //\n");
-    printf("///////////////////////////////////////////////////////////////////////////////////\n\n");
+    printf("\n//////////////////////////////////////////////////////////////////////////////////\n");
+    printf("//                                                                              //\n");
+    printf("// %s v%s - %s                  //\n", TOOL_NAME, TOOL_VERSION, TOOL_DESCRIPTION);
+    printf("// powered by raylib v%s and raygui v%s                               //\n", RAYLIB_VERSION, RAYGUI_VERSION);
+    printf("// more info and bugs-report: github.com/raysan5/raylib-project-builder         //\n");
+    printf("// feedback and support:      ray[at]raylib.com                                 //\n");
+    printf("//                                                                              //\n");
+    printf("// Copyright (c) 2025-2026 Ramon Santamaria (@raysan5)                          //\n");
+    printf("//                                                                              //\n");
+    printf("//////////////////////////////////////////////////////////////////////////////////\n\n");
 
     printf("USAGE:\n\n");
-    printf("    > rpb [--help] --input <filename.ext> [--output <filename.ext>]\n");
-    printf("                    [--format <value>]\n");
+    printf("    > rpb [--help] --input <project.rpc> [--output build]\n");
+    printf("          [--build <platform>] [--info]\n");
+
 
     printf("\nOPTIONS:\n\n");
     printf("    -h, --help                      : Show tool version and command line usage help\n\n");
-    printf("    -i, --input <filename.ext>      : Define input file.\n");
-    printf("                                      Supported extensions: .xx1, .xx2\n\n");
-    printf("    -o, --output <filename.ext>     : Define output file.\n");
-    printf("                                      Supported extensions: .xx1, .xx2\n");
-    printf("                                      NOTE: If not specified, defaults to: output.xx1\n\n");
-    printf("    -f, --format <value>            : Format output file.\n");
-    printf("                                      Supported values:\n");
-    printf("                                          Sample rate:      22050, 44100\n");
-    printf("                                          Sample size:      8, 16, 32\n");
-    printf("                                          Channels:         1 (mono), 2 (stereo)\n");
-    printf("                                      NOTE: If not specified, defaults to: 44100, 16, 1\n\n");
+    printf("    -i, --input <project.rpc>       : Define input project config file (.rpc)\n");
+    printf("    -o, --output <path>             : Define output path for build\n");
+    printf("                                      NOTE: If not defined, using defined one in .rpc\n\n");
+
+    // Processes: build, package, deploy
+    printf("    -b, --build <platform>          : Build project for required platform\n");
+#if defined(_WIN32)
+    printf("                                      Supported platforms (HOST: Windows): Windows, Linux, macOS, Wasm\n");
+#elif defined(__linux__)
+    printf("                                      Supported platforms (HOST: Linux): Linux, Wasm\n");
+#elif defined(__APPLE__)
+    printf("                                      Supported platforms (HOST: macOS): macOS, Wasm\n");
+#elif defined(__EMSCRIPTEN__)
+    printf("                                      Supported platforms (HOST: Web): -\n");
+#endif
+    printf("                                      NOTE: Platform build support depends on the host platform\n\n");
+    //printf("    -p, --package <platform>        : Package project for target platform\n");
+    //printf("    -d, --deploy <store>            : Deploy package to target store\n");
+    printf("    -n, --info                      : Show project information\n");
 
     printf("\nEXAMPLES:\n\n");
-    printf("    > rpb --input sound.rfx --output jump.wav\n");
-    printf("        Process <sound.rfx> to generate <sound.wav> at 44100 Hz, 32 bit, Mono\n\n");
-    printf("    > rpb --input sound.rfx --output jump.wav --format 22050 16 2\n");
-    printf("        Process <sound.rfx> to generate <jump.wav> at 22050 Hz, 16 bit, Stereo\n\n");
-    printf("    > rpb --input sound.rfx --play\n");
-    printf("        Plays <sound.rfx>, wave data is generated internally but not saved\n\n");
+    printf("    > rpb -i cool_game.rpc -o cool_game --build Windows\n");
+    printf("        Build cool_game for Windows (expecting Windows Host)\n\n");
+    printf("    > rpb -i game.rpc\n");
+    printf("        Build using project defaults\n\n");
+    printf("    > rpb -i game.rpc -b Windows\n");
+    printf("        Build for Windows\n\n");
+    printf("    > rpb -i game.rpc -o build -b Linux\n");
+    printf("        Build for Linux to output build directory\n\n");
+    printf("    > rpb -i game.rpc -b Wasm -o ./build/web\n");
+    printf("        Build to a specific output directory\n\n");
 }
 
 // Process command line input
@@ -1264,6 +1277,8 @@ static void ProcessCommandLine(int argc, char *argv[])
 {
     // CLI required variables
     bool showUsageInfo = false;         // Toggle command line usage info
+    int buildPlatform = -1;             // Target build platform
+    char buildPath[256] = { 0 };  // Build output path
 
 #if defined(COMMAND_LINE_ONLY)
     if (argc == 1) showUsageInfo = true;
@@ -1281,10 +1296,9 @@ static void ProcessCommandLine(int argc, char *argv[])
             // Check for valid argument and valid file extension
             if (((i + 1) < argc) && (argv[i + 1][0] != '-'))
             {
-                if (IsFileExtension(argv[i + 1], ".xx1") ||
-                    IsFileExtension(argv[i + 1], ".xx2"))
+                if (IsFileExtension(argv[i + 1], ".rpc"))
                 {
-                    strcpy(inFileName, argv[i + 1]);    // Read input filename
+                    strcpy(inFileName, argv[i + 1]); // Read input filename
                 }
                 else printf("WARNING: Input file extension not recognized\n");
 
@@ -1297,23 +1311,25 @@ static void ProcessCommandLine(int argc, char *argv[])
             // Check for valid upcoming argumment and valid file extension: output
             if (((i + 1) < argc) && (argv[i + 1][0] != '-'))
             {
-                if (IsFileExtension(argv[i + 1], ".xx1") ||
-                    IsFileExtension(argv[i + 1], ".xx2"))
-                {
-                    strcpy(outFileName, argv[i + 1]);   // Read output filename
-                }
-                else printf("WARNING: Output file extension not recognized\n");
+                strcpy(buildPath, argv[i + 1]);   // Read output path
 
                 i++;
             }
             else printf("WARNING: No output file provided\n");
         }
-        else if ((strcmp(argv[i], "-f") == 0) || (strcmp(argv[i], "--format") == 0))
+        else if ((strcmp(argv[i], "-b") == 0) || (strcmp(argv[i], "--build") == 0))
         {
             // Check for valid argument and valid parameters
             if (((i + 1) < argc) && (argv[i + 1][0] != '-'))
             {
-                // TODO: CLI: Read provided values
+                if (TextIsEqual(argv[i + 1], "Windows")) buildPlatform = 0;
+                else if (TextIsEqual(argv[i + 1], "Linux")) buildPlatform = 1;
+                else if (TextIsEqual(argv[i + 1], "macOS")) buildPlatform = 2;
+                else if (TextIsEqual(argv[i + 1], "Wasm")) buildPlatform = 3;
+                else if (TextIsEqual(argv[i + 1], "Android")) buildPlatform = 4;
+                else printf("WARNING: Requested build platform not supported (%s)\n", argv[i + 1]);
+
+                // WARNING: Requested build platform should be validated against host platform
             }
             else printf("WARNING: Format parameters provided not valid\n");
         }
@@ -1322,14 +1338,62 @@ static void ProcessCommandLine(int argc, char *argv[])
     // Process input file if provided
     if (inFileName[0] != '\0')
     {
-        // Set a default name for output in case not provided
-        if (outFileName[0] == '\0') strcpy(outFileName, TextFormat("%s.out", GetFileNameWithoutExt(inFileName)));
+        printf("INFO: Working directory: %s\n", GetWorkingDirectory());
+        char inputFilePath[256] = { 0 };
 
-        printf("\nInput file:       %s", inFileName);
-        printf("\nOutput file:      %s", outFileName);
-        printf("\nOutput format:    %i\n\n", 0);
+        // Validate input project file
+        if (IsPathAbsolute(inFileName) && FileExists(inFileName)) strcpy(inputFilePath, inFileName);
+        else if (FileExists(TextFormat("%s/%s", GetWorkingDirectory(), inFileName))) strcpy(inputFilePath, TextFormat("%s/%s", GetWorkingDirectory(), inFileName));
+        else printf("WARNING: [%s] Input project file can not be found\n", inFileName);
 
-        // TODO: CLI: Process input --> output
+        if (inputFilePath[0] != '\0')
+        {
+            // Load input project file
+            rpcProjectConfig config = rpcLoadProjectConfig(inputFilePath);
+
+            printf("INFO: [%s] Loaded input project: %s\n", GetFileName(inputFilePath), rpcGetText(config, "PROJECT_INTERNAL_NAME"));
+
+            printf("  > Project repo name:       %s\n", rpcGetText(config, "PROJECT_REPO_NAME"));
+            printf("  > Project internal name:   %s\n", rpcGetText(config, "PROJECT_INTERNAL_NAME"));
+            printf("  > Project commercial name: %s\n", rpcGetText(config, "PROJECT_COMMERCIAL_NAME"));
+            printf("  > Project short name:      %s\n", rpcGetText(config, "PROJECT_SHORT_NAME"));
+            printf("  > Project version:         %s\n", rpcGetText(config, "PROJECT_VERSION"));        
+            printf("  > Project description:     %s\n", rpcGetText(config, "PROJECT_DESCRIPTION"));
+            printf("  > Project publisher name:  %s\n", rpcGetText(config, "PROJECT_PUBLISHER_NAME")); 
+            printf("  > Project developer name:  %s\n", rpcGetText(config, "PROJECT_DEVELOPER_NAME")); 
+            printf("  > Project developer url:   %s\n\n", rpcGetText(config, "PROJECT_DEVELOPER_URL"));  
+
+            // NOTE: Build output path validation done inside BuildProject()
+
+            // Validate platform selected for current host
+#if defined(_WIN32)
+            if ((buildPlatform != 0) && (buildPlatform != 1) && (buildPlatform != 3))
+            {
+                buildPlatform = 0; // Revert to Windows
+                printf("WARNING: Requested platform not supported on current host platforms (HOST: Windows)\n");
+                printf("WARNING: Revert to default platform: %s\n", platformNames[buildPlatform]);
+            }
+#elif defined(__linux__)
+            if ((buildPlatform != 1) && (buildPlatform != 3))
+            {
+                buildPlatform = 1; // Revert to Linux
+                printf("WARNING: Requested platform not supported on current host platforms (HOST: Linux)\n");
+                printf("WARNING: Revert to default platform: %s\n", platformNames[buildPlatform]);
+            }
+#elif defined(__APPLE__)
+            if ((buildPlatform != 2) && (buildPlatform != 3))
+            {
+                buildPlatform = 2; // Revert to macOS
+                printf("WARNING: Requested platform not supported on current host platforms (HOST: macOS)\n");
+                printf("WARNING: Revert to default platform: %s\n", platformNames[buildPlatform]);
+            }
+#endif
+
+            printf("INFO: Build output platform:   %s\n", platformNames[buildPlatform]);
+
+            // Build provided project to output build directory for selected platform
+            int result = BuildProject(config, buildPlatform, buildPath);
+        }
     }
 
     if (showUsageInfo) ShowCommandLineInfo();
