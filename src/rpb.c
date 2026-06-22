@@ -615,7 +615,15 @@ static void UpdateDrawFrame(void)
     if ((IsKeyDown(KEY_LEFT_CONTROL) && IsKeyDown(KEY_LEFT_SHIFT) && IsKeyPressed(KEY_S)) || mainToolbarState.btnSaveFilePressed) showSaveAsProjectDialog = true;
 
     // Show dialog: build project
-    if ((IsKeyDown(KEY_LEFT_CONTROL) && IsKeyPressed(KEY_B)) || mainToolbarState.btnBuildProjectPressed) showBuildProjectDialog = true;
+    if ((IsKeyDown(KEY_LEFT_CONTROL) && IsKeyPressed(KEY_B)) || mainToolbarState.btnBuildProjectPressed)
+    {
+#if defined(_WIN32)
+        TextCopy(outProjectFilePath, TextFormat("%s\\%s", GetDirectoryPath(inFileName), rpcGetText(project, "BUILD_OUTPUT_PATH")));
+#else
+        TextCopy(outProjectFilePath, TextFormat("%s/%s", GetDirectoryPath(inFileName), rpcGetText(project, "BUILD_OUTPUT_PATH")));
+#endif
+        showBuildProjectDialog = true;
+    }
 
     // Save current project config (.rpc)
     if (((IsKeyDown(KEY_LEFT_CONTROL) && IsKeyPressed(KEY_S)) || mainToolbarState.btnLoadFilePressed) && saveProjectRequired)
@@ -908,8 +916,13 @@ static void UpdateDrawFrame(void)
         if (project.entryCount == 0) GuiDisable();
         if (GuiButton((Rectangle){ 8, GetScreenHeight() - 24 - 8 - 40, GetScreenWidth() - 16, 40 }, "#131#BUILD and RUN PROJECT"))
         {
-            runProjectRequired = true;
+#if defined(_WIN32)
+            TextCopy(outProjectFilePath, TextFormat("%s\\%s", GetDirectoryPath(inFileName), rpcGetText(project, "BUILD_OUTPUT_PATH")));
+#else
+            TextCopy(outProjectFilePath, TextFormat("%s/%s", GetDirectoryPath(inFileName), rpcGetText(project, "BUILD_OUTPUT_PATH")));
+#endif
             showBuildProjectDialog = true;
+            runProjectRequired = true;
         }
         GuiEnable();
         //----------------------------------------------------------------------------------
