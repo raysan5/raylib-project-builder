@@ -71,20 +71,42 @@ project-repo-name/
  - `F2` - Show About window
  - `F3` - Show Sponsor window
 
-**File Options**
+**File Controls**
 
+ - `LCTRL + O - Load project config (.rpc)
+ - `LCTRL + S - Save current project config
+ - `LCTRL + LSHFT + S - SaveAs current project config
+
+**Build Controls**
+ - `LCTRL + B - Build current platform
 
 ## Command-line
 
 ```
 USAGE:
-    > rpb [--help] ...
+    > rpb [--help] --input <project.rpc> [--output build]
+          [--build <platform>] [--info]
 
 OPTIONS:
-    -h, --help                          : Show tool version and command line usage help
+    -h, --help                      : Show tool version and command line usage help
+    -i, --input <project.rpc>       : Define input project config file (.rpc)
+    -o, --output <path>             : Define output path for build
+                                      NOTE: If not defined, using defined one in .rpc
+    -b, --build <platform>          : Build project for required platform
+                                      NOTE: Supported build platforms depends on HOST platform
+    -n, --info                      : Show project information
 
 EXAMPLES:
-    > rpb ....
+    > rpb -i cool_game.rpc -o cool_game --build Windows
+        Build cool_game for Windows (expecting Windows Host)
+    > rpb -i game.rpc
+        Build using project defaults
+    > rpb -i game.rpc -b Windows
+        Build for Windows
+    > rpb -i game.rpc -o build -b Linux
+        Build for Linux to output build directory
+    > rpb -i game.rpc -b Wasm -o ./build/web
+        Build to a specific output directory
 ```
 
 ## Technologies
