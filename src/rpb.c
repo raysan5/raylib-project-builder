@@ -84,7 +84,6 @@
     #include <emscripten/html5.h>           // Emscripten HTML5 browser functionality (emscripten_set_beforeunload_callback)
 #endif
 
-#define RAYGUI_TABBAR_ITEM_WIDTH    172
 #define RAYGUI_IMPLEMENTATION
 #include "external/raygui.h"
 
@@ -258,20 +257,16 @@ static const char *platformOutExtension[] = { ".exe", "", ".app", ".html", ".apk
 
 // Basic program variables
 //----------------------------------------------------------------------------------
-static rpcProjectConfig project = { 0 };    // Project config data
+static rpcProjectConfig project = { 0 };        // Project config data
 
-static char inProjectFilePath[256] = { 0 }; // Project file path
-static char buildProjectPath[256] = { 0 };  // Project build path
+static char inProjectFilePath[256] = { 0 };     // Project file path
+static char outProjectFilePath[256] = { 0 };    // Project output path (build path)
 
-static bool showMessageReset = false;       // Show message: reset
-static bool showMessageExit = false;        // Show message: exit (quit)
+static bool showMessageReset = false;           // Show message: reset
+static bool showMessageExit = false;            // Show message: exit (quit)
 
-//static double baseTime = 0;                 // Base time in seconds to start counting
-//static double currentTime = 0;              // Current time counter in seconds
-
-static bool saveProjectRequired = false;    // Flag to detect if project needs to be saved
-
-static bool runProjectRequired = false;     // Flag to request project run after building
+static bool saveProjectRequired = false;        // Flag to detect if project needs to be saved
+static bool runProjectRequired = false;         // Flag to request project run after building
 //-----------------------------------------------------------------------------------
 
 // Support Message Box
@@ -475,11 +470,6 @@ int main(int argc, char *argv[])
 
         rpcUnloadProjectConfig(prjsrc);
 
-#if defined(_WIN32)
-        TextCopy(buildProjectPath, TextFormat("%s\\%s", GetDirectoryPath(inProjectFilePath), rpcGetText(project, "BUILD_OUTPUT_PATH")));
-#else
-        TextCopy(buildProjectPath, TextFormat("%s/%s", GetDirectoryPath(inProjectFilePath), rpcGetText(project, "BUILD_OUTPUT_PATH")));
-#endif
         if (saveProjectRequired) SetWindowTitle(TextFormat("%s v%s - %s*", toolName, toolVersion, GetFileName(inProjectFilePath)));
         else SetWindowTitle(TextFormat("%s v%s - %s", toolName, toolVersion, GetFileName(inProjectFilePath)));
     }
@@ -554,7 +544,7 @@ static void UpdateDrawFrame(void)
             rpcUnloadProjectConfig(project);
             project = rpcLoadProjectConfig(inProjectFilePath);
             /*
-            rpcProjectConfig prjsrc = rpcLoadProjectConfig(inProjectFilePath);    // Load tool data from file
+            rpcProjectConfig prjsrc = rpcLoadProjectConfig(inProjectFilePath); // Load tool data from file
             rpcUnloadProjectConfig(project);
             project = rpcLoadProjectConfig("resources/project_template.rpc");
 
@@ -569,11 +559,6 @@ static void UpdateDrawFrame(void)
             rpcUnloadProjectConfig(prjsrc);
             */
 
-    #if defined(_WIN32)
-            TextCopy(buildProjectPath, TextFormat("%s\\%s", GetDirectoryPath(inProjectFilePath), rpcGetText(project, "BUILD_OUTPUT_PATH")));
-    #else
-            TextCopy(buildProjectPath, TextFormat("%s/%s", GetDirectoryPath(inProjectFilePath), rpcGetText(project, "BUILD_OUTPUT_PATH")));
-    #endif
             if (saveProjectRequired) SetWindowTitle(TextFormat("%s v%s - %s*", toolName, toolVersion, GetFileName(inProjectFilePath)));
             else SetWindowTitle(TextFormat("%s v%s - %s", toolName, toolVersion, GetFileName(inProjectFilePath)));
         }
@@ -759,7 +744,7 @@ static void UpdateDrawFrame(void)
             if (platformEnabled[i] && (currentPlatform != i)) platformEnabled[i] = false;
         }
 
-        GuiLabel((Rectangle){ 12, 44, GetScreenWidth(), 24 }, 
+        GuiLabel((Rectangle){ 12, 44, GetScreenWidth(), 24 },
             TextFormat("HOST PLATFORM: %s (%s) - SELECT TARGET BUILD PLATFORM:", hostPlatform, hostArch));
 
         // NOTE: Enabled platforms depend on HOST platform
@@ -767,7 +752,7 @@ static void UpdateDrawFrame(void)
         {
             if (!buildPlatformsEnabled[i]) GuiDisable();
 
-            if (i == hostPlatformId) DrawRectangleRec((Rectangle){ 12 + (96 + 8)*i - 2, 76 - 2, 100, 100 }, 
+            if (i == hostPlatformId) DrawRectangleRec((Rectangle){ 12 + (96 + 8)*i - 2, 76 - 2, 100, 100 },
                 Fade(GetColor(GuiGetStyle(DEFAULT, BASE_COLOR_PRESSED)), 0.8f));
 
             GuiToggle((Rectangle){ 12 + (96 + 8)*i, 76, 96, 96 }, NULL, &platformEnabled[i]);
@@ -796,7 +781,7 @@ static void UpdateDrawFrame(void)
             GuiSetIconScale(3);
             GuiSetStyle(DEFAULT, TEXT_SIZE, GuiGetFont().baseSize*2);
             GuiSetStyle(LABEL, TEXT_ALIGNMENT, TEXT_ALIGN_CENTER);
-            GuiLabel((Rectangle){ 0, propsPanelOffsetY, GetScreenWidth(), GetScreenHeight() - 188 - 56 - 24 }, 
+            GuiLabel((Rectangle){ 0, propsPanelOffsetY, GetScreenWidth(), GetScreenHeight() - 188 - 56 - 24 },
                 "#10#Drag & drop or load a project config file .rpc");
             GuiSetStyle(LABEL, TEXT_ALIGNMENT, TEXT_ALIGN_LEFT);
             GuiSetStyle(DEFAULT, TEXT_SIZE, GuiGetFont().baseSize);
@@ -804,6 +789,8 @@ static void UpdateDrawFrame(void)
 
             GuiDisable();
         }
+        
+        GuiSetStyle(TABBAR, TAB_ITEMS_WIDTH, 172);
         GuiTabBar((Rectangle){ 0, propsPanelOffsetY, GetScreenWidth(), 28 }, tabText, 6, &currentTab);
         GuiEnable();
 
@@ -853,7 +840,7 @@ static void UpdateDrawFrame(void)
 
                 if ((project.entries[i].platform != RPC_PLATFORM_ANY) && (project.entries[i].platform != currentPlatform)) continue;
 
-                if (project.entries[i].type != RPC_TYPE_BOOL) 
+                if (project.entries[i].type != RPC_TYPE_BOOL)
                     GuiLabel((Rectangle){ 24, propsPanelOffsetY + 36 + (24 + 8)*k + panelScroll.y, 180, 24 }, TextFormat("%s:", project.entries[i].name));
 
                 int descWidth = 460;
@@ -933,12 +920,12 @@ static void UpdateDrawFrame(void)
 
         // GUI: Status bar
         //----------------------------------------------------------------------------------
-        GuiStatusBar((Rectangle){ 0, GetScreenHeight() - 24, 320, 24 }, 
+        GuiStatusBar((Rectangle){ 0, GetScreenHeight() - 24, 320, 24 },
             (inProjectFilePath[0] == '\0')? "NO PROJECT LOADED" : TextFormat("PROJECT: %s", GetFileName(inProjectFilePath)));
-        GuiStatusBar((Rectangle){ 320 - 1, GetScreenHeight() - 24, 260, 24 }, 
+        GuiStatusBar((Rectangle){ 320 - 1, GetScreenHeight() - 24, 260, 24 },
             TextFormat("TARGET PLATFORM: %s", (inProjectFilePath[0] == '\0')? "-" : platformNames[currentPlatform]));
         GuiStatusBar((Rectangle){ 320 + 260 - 2, GetScreenHeight() - 24, GetScreenWidth() - 320 - 260 + 2 - 24, 24 },
-            (inProjectFilePath[0] == '\0')? "OUTPUT: -" : TextFormat("OUTPUT: %s/%s%s", rpcGetText(project, "BUILD_OUTPUT_PATH"), 
+            (inProjectFilePath[0] == '\0')? "OUTPUT: -" : TextFormat("OUTPUT: %s/%s%s", rpcGetText(project, "BUILD_OUTPUT_PATH"),
                 rpcGetText(project, "PROJECT_INTERNAL_NAME"), platformOutExtension[currentPlatform]));
         if (GuiButton((Rectangle){ GetScreenWidth() - 24, GetScreenHeight() - 24, 24, 24 }, "#173#"))
         {
@@ -1090,11 +1077,6 @@ static void UpdateDrawFrame(void)
                 rpcUnloadProjectConfig(prjsrc);
                 */
 
-#if defined(_WIN32)
-                TextCopy(buildProjectPath, TextFormat("%s\\%s", GetDirectoryPath(inProjectFilePath), rpcGetText(project, "BUILD_OUTPUT_PATH")));
-#else
-                TextCopy(buildProjectPath, TextFormat("%s/%s", GetDirectoryPath(inProjectFilePath), rpcGetText(project, "BUILD_OUTPUT_PATH")));
-#endif
                 if (saveProjectRequired) SetWindowTitle(TextFormat("%s v%s - %s*", toolName, toolVersion, GetFileName(inProjectFilePath)));
                 else SetWindowTitle(TextFormat("%s v%s - %s", toolName, toolVersion, GetFileName(inProjectFilePath)));
             }
@@ -1119,7 +1101,7 @@ static void UpdateDrawFrame(void)
                 if ((GetFileExtension(outFileName) == NULL) || !IsFileExtension(outFileName, ".rpc")) strcat(outFileName, ".rpc\0");
 
                 FileRename(inProjectFilePath, outFileName); // Rename project file before saving
-                
+
                 // NOTE: Instead of recreating the full file, load full template, update/add required entries, save project
                 // File to be updated with changes: inProjectFilePath
                 // Update project configuration .rpc to defined values by [rpc] tool
@@ -1138,7 +1120,7 @@ static void UpdateDrawFrame(void)
                     }
                 }
                 rini_save(data, inProjectFilePath);
-                
+
                 saveProjectRequired = false;
                 SetWindowTitle(TextFormat("%s v%s - %s", toolName, toolVersion, GetFileName(inProjectFilePath)));
 
@@ -1158,13 +1140,10 @@ static void UpdateDrawFrame(void)
         //----------------------------------------------------------------------------------------
         if (showBuildProjectDialog)
         {
-            // Create default build output directory to open dialog pointing at it
-            if (!DirectoryExists(buildProjectPath)) MakeDirectory(buildProjectPath);
-
 #if defined(CUSTOM_MODAL_DIALOGS)
-            int result = GuiFileDialog(DIALOG_TEXTINPUT, "Select build output path...", buildProjectPath, "Ok;Cancel", NULL);
+            int result = GuiFileDialog(DIALOG_TEXTINPUT, "Select build output path...", outProjectFilePath, "Ok;Cancel", NULL);
 #else
-            int result = GuiFileDialog(DIALOG_OPEN_DIRECTORY, "Select build output path...", buildProjectPath, "", "");
+            int result = GuiFileDialog(DIALOG_OPEN_DIRECTORY, "Select build output path...", outProjectFilePath, "", "");
 #endif
             if (result == 1)
             {
@@ -1412,7 +1391,7 @@ static int BuildProject(rpcProjectConfig project, int platform)
                 ChangeDirectory(TextFormat("%s/projects/VS2022", GetDirectoryPath(inProjectFilePath)));
                 system(TextFormat("%s\\msbuild.exe %s.sln /target:%s /property:Configuration=Release /property:Platform=x64 /property:RaylibSrcPath = \"%s\"",
                     rpcGetText(project, "PLATFORM_WINDOWS_MSBUILD_PATH"), rpcGetText(project, "PROJECT_INTERNAL_NAME"), rpcGetText(project, "PROJECT_INTERNAL_NAME"), rpcGetText(project, "RAYLIB_SRC_PATH")));
-                
+
                 // TODO: Copy VS2022 build output to build directory
             }
             else
