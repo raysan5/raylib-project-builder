@@ -1699,7 +1699,7 @@ static int BuildProject(rpcProjectConfig project, int platform, const char *buil
                 rpcGetValue(project, "PLATFORM_WEB_HEAP_MEMORY_SIZE")));
 
             // 4. Process assets (...)
-            // NOTE: Resources/assets already processed by emscripten building
+            // NOTE: Resources/assets already processed by emscripten building process
 
             // 5. Package project (...)
 
