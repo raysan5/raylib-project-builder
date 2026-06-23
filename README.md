@@ -15,10 +15,10 @@
  - Multiple HOST platforms supported: Windows, Linux, macOS
  - Multiple target platforms supported: Windows, Linux, macOS, Wasm, Android
  - Configure project build settings in a visual way
- - Automatic assets validation, processing and packaging 
+ - Automatic assets validation, processing and packaging
  - Command-line support for **automated project building**
  - **Completely portable (single-file, no-dependencies)**
- 
+
 ## Basic Usage
 
 Open the `rpb` tool desktop interface and open/drag&drop your `.rpc` project file. Once the file open, check project details, some build properties can be configured before building. Once everything ready, click the BUILD button or the Build & Run button. Build process can be followed in the console window opened separately.
@@ -38,7 +38,7 @@ Open the `rpb` tool desktop interface and open/drag&drop your `.rpc` project fil
 | Wasm          | ...  | No targets supported as web-local but any as remote-server frontend |
 
 _NOTE: More platforms can be added in the future_
- 
+
 ### Build Steps
 
 Project building process consist of multiple steps, depending on the host and target platforms some of those steps are optional or not available.
