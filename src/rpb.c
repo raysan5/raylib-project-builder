@@ -1256,18 +1256,20 @@ static void ShowCommandLineInfo(void)
     printf("    -o, --output <path>             : Define output path for build\n");
     printf("                                      NOTE: If not defined, using defined one in .rpc\n\n");
 
-    // Processes: build, package, deploy
     printf("    -b, --build <platform>          : Build project for required platform\n");
+    printf("                                      NOTE: Supported build platforms depends on HOST platform\n");
 #if defined(_WIN32)
-    printf("                                      Supported platforms (HOST: Windows): Windows, Linux, macOS, Wasm\n");
+    printf("                                         - HOST: Windows - Platforms: Windows, Linux, Wasm, Android\n");
 #elif defined(__linux__)
-    printf("                                      Supported platforms (HOST: Linux): Linux, Wasm\n");
+    printf("                                         - HOST: Linux - Platforms: Linux, Wasm\n");
+#elif defined(__FreeBSD__) || defined(__OpenBSD__)
+    printf("                                         - HOST: FreeBSD - Platforms: FreeBSD\n");
 #elif defined(__APPLE__)
-    printf("                                      Supported platforms (HOST: macOS): macOS, Wasm\n");
+    printf("                                         - HOST: macOS - Platforms: macOS, Wasm\n");
 #elif defined(__EMSCRIPTEN__)
-    printf("                                      Supported platforms (HOST: Web): -\n");
+    printf("                                         - HOST: Web - Platforms: -\n");
 #endif
-    printf("                                      NOTE: Platform build support depends on the host platform\n\n");
+
     //printf("    -p, --package <platform>        : Package project for target platform\n");
     //printf("    -d, --deploy <store>            : Deploy package to target store\n");
     printf("    -n, --info                      : Show project information\n");
@@ -1432,13 +1434,14 @@ static int BuildProject(rpcProjectConfig project, int platform, const char *buil
     //    - Set environment variables
     // 2. Build raylib library
     //    - Set library config options
-    //    - Set default directories
+    //    - Set default output directories
+    //    - Build raylib with selected configuration
     // 3. Build project
-    //    - Set output directory required structure
-    //    - Build project required source files (already defined)
-    //    - Copy output to build directory
+    //    - Set output directory with required structure
+    //    - Build project source files (defined by .rpc)
+    //    - Copy binary to build directory
     // 4. Process assets
-    //    - Process assets and package into rres format
+    //    - Process and package assets
     //    - Copy assets to output build assets path
     // 5. Package project
     //    - Sign executable and/or package
