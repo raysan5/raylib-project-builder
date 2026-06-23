@@ -6,33 +6,73 @@
 
 ## What can I do with `rpb`?
 
-Welcome to `rpb`! A new tool to help you build your raylib projects, created with raylib project creator!
+`rpb` can help you to automatically build your raylib projects for multiple platforms. Projects created with `rpc`, raylib project creator, include a `.rpc` file with all the configuration parameters required to automatize project building; `rpb` can read `.rpc` config files and build defined project for multiple platforms. Supported target platforms depend on the Host platform and installed tooling.
 
 ## Features
 
  - Support `.rpc` **project configuration** interchange file format
     - Shared with homonymous tool: [`rpc` - raylib project creator](https://github.com/raysan5/raylib-project-creator)
- - Multiple platforms building supported: Windows, Linux, Web
+ - Multiple HOST platforms supported: Windows, Linux, macOS
+ - Multiple target platforms supported: Windows, Linux, macOS, Wasm, Android
  - Configure project build settings in a visual way
- - Automatic assets validation system 
+ - Automatic assets validation, processing and packaging 
  - Command-line support for **automated project building**
  - **Completely portable (single-file, no-dependencies)**
-
+ 
 ## Basic Usage
 
-Open the tool, drag & drop your `.rpc` project file. Configure project build properties...
+Open the `rpb` tool desktop interface and open/drag&drop your `.rpc` project file. Once the file open, check project details, some build properties can be configured before building. Once everything ready, click the BUILD button or the Build & Run button. Build process can be followed in the console window opened separately.
 
-`rpb` dektop version comes with command-line support for automated project building. You can check all available options with the following command:
-
- > rpb.exe --help
+**WARNING: Build process is blocking at this moment so the UI tool can look like no-responding, just wait for the process to finish to get control again.**
 
 ### Platforms Supported
 
-`rpb` can build for multiple platforms...
+`rpb` can build for multiple platforms, depending on the Host platform and installed SDKs
 
-...
+| Host Platform | Target Platforms | Notes           |
+| :------------ | :--------------: | :-------------- |
+| Windows       | Windows<br>Linux<br>Wasm<br>Android |  |
+| Linux         | Linux<br>Wasm |  |
+| FreeBSD       | FreeBSD |  |
+| macOS         | macOS<br>Wasm |  |
+| Wasm          | ...  | No targets supported as web-local but any as remote-server frontend |
 
-## Expected project structure
+_NOTE: More platforms can be added in the future_
+ 
+### Build Steps
+
+Project building process consist of multiple steps, depending on the host and target platforms some of those steps are optional or not available.
+
+ 1. Setup environment
+    - Download and install required SDKs
+    - Configure required directories
+    - Set environment variables
+ 2. Build raylib library
+    - Set library config options
+    - Set default output directories
+    - Build raylib with selected configuration
+ 3. Build project
+    - Set output directory with required structure
+    - Build project source files (defined by .rpc)
+    - Copy binary to build directory
+ 4. Process assets
+    - Process and package assets
+    - Copy assets to output build assets path
+ 5. Package project
+    - Sign executable and/or package
+    - Compress output build (.zip/.7z)
+    - Create installer for target platform
+ 6. Run project (depends on host platform)
+
+## Project Configuration file
+
+`rpb` supports loading raylib project configuration files: `.rpc`.
+
+`.rpb` configuration files are shared betten `rpc` and `rpb` tools. `rpc` generates a base configuration file on project generation with provided properties and `rpb` can use that config file information to build the project for multiple platforms.
+
+`.rpc` is a text and open file format, following a `.ini` style, and can be freely edited with any text editor.
+
+### Expected project structure
 
 The expected project structure defined by the `.rpc` file should follow the template structure and contrains the following elements:
 
@@ -57,14 +97,6 @@ project-repo-name/
 └── project_name.rpc    // Project configuration file, useful for [rpb] tool
 ```
 
-## Project Configuration file
-
-`rpb` supports loading raylib project configuration files: `.rpc`.
-
-`.rpb` configuration files are shared betten `rpc` and `rpb` tools. `rpc` generates a base configuration file on project generation with provided properties and `rpb` can use that config file information to build the project for multiple platforms.
-
-`.rpc` is a text and open file format, following a `.ini` style, and can be freely edited with any text editor.
-
 ## Keyboard/Mouse Shortcuts
 
  - `F1` - Show Help window
@@ -80,7 +112,11 @@ project-repo-name/
 **Build Controls**
  - `LCTRL + B - Build current platform
 
-## Command-line
+## Command-line interface
+
+`rpb` dektop version comes with command-line support for automated project building. You can check all available options with the following command:
+
+ > rpb.exe --help
 
 ```
 USAGE:
