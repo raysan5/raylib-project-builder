@@ -567,12 +567,7 @@ static void UpdateDrawFrame(void)
         {
             // TODO: Check if it is a valid project directory and contains a .rpc file
         }
-#if defined(PLATFORM_WEB)
-        else
-        {
-            // TODO: Check if the file has been dropped over some file-path property rectangle
-        }
-#endif
+
         /*
         else if (IsFileExtension(droppedFiles.paths[0], ".rkey"))
         {
@@ -729,17 +724,6 @@ static void UpdateDrawFrame(void)
 
     // Draw
     //----------------------------------------------------------------------------------
-    /*
-    // TODO: Use a render texture if required
-    BeginTextureMode(target);
-
-        ClearBackground(BLANK);     // Clear render target
-
-        //DrawTexture(texture, 0, 0, WHITE);
-
-    EndTextureMode();
-    */
-
     BeginDrawing();
 
         ClearBackground(GetColor(GuiGetStyle(DEFAULT, BACKGROUND_COLOR)));
@@ -1236,7 +1220,7 @@ static void ShowCommandLineInfo(void)
 {
     printf("\n//////////////////////////////////////////////////////////////////////////////////\n");
     printf("//                                                                              //\n");
-    printf("// %s v%s - %s                  //\n", TOOL_NAME, TOOL_VERSION, TOOL_DESCRIPTION);
+    printf("// %s v%s - %s                   //\n", TOOL_NAME, TOOL_VERSION, TOOL_DESCRIPTION);
     printf("// powered by raylib v%s and raygui v%s                               //\n", RAYLIB_VERSION, RAYGUI_VERSION);
     printf("// more info and bugs-report: github.com/raysan5/raylib-project-builder         //\n");
     printf("// feedback and support:      ray[at]raylib.com                                 //\n");
@@ -1408,6 +1392,8 @@ static void ProcessCommandLine(int argc, char *argv[])
 
             // Build provided project to output build directory for selected platform
             int result = BuildProject(config, buildPlatform, buildPath);
+
+            if (result == 0) printf("Build process finished successfully!\n");
         }
     }
 
@@ -1572,7 +1558,7 @@ static int BuildProject(rpcProjectConfig project, int platform, const char *buil
                 PathToWSL(buildOutputPath), rpcGetText(project, "RAYLIB_SRC_PATH")));
 
             // 4. Process assets
-            // TODO: REVIEW: Copy to destination assets output, directory created automatically
+            // Copy to destination assets output, directory created automatically
             DirectoryCopy(TextFormat("%s/%s", PathToWSL(GetDirectoryPath(inProjectFilePath)), rpcGetText(project, "PROJECT_ASSETS_PATH")),
                 TextFormat("%s/%s", PathToWSL(buildOutputPath), rpcGetText(project, "PROJECT_ASSETS_OUTPUT_PATH")));
             //system(TextFormat("wsl cp %s %s", rpcGetText(project, "PROJECT_INTERNAL_NAME"), PathToWSL(buildOutputPath)));
