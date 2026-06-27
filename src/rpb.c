@@ -195,15 +195,7 @@ static bool saveChangesRequired = false;    // Flag to notice save changes are r
 static Texture2D texPlatforms = { 0 };      // Platform logos texture for toggles
 static bool platformEnabled[MAX_PLATFORMS] = { 0 };
 
-static int currentTab = 1;
-char *tabText[6] = {
-    "#176#PROJECT SETTINGS",
-    "#140#BUILD SETTINGS",
-    "#181#PLATFORM SETTINGS",
-    "#178#DEPLOY OPTIONS",
-    "#12#IMAGERY EDITION",
-    "#133#raylib CONFIG"
-};
+static int tabActive = 1;
 
 static Vector2 panelScroll = { 0 };
 static Rectangle panelView = { 0 };
@@ -784,15 +776,16 @@ static void UpdateDrawFrame(void)
         }
         
         GuiSetStyle(TABBAR, TAB_ITEMS_WIDTH, 172);
-        GuiTabBar((Rectangle){ 0, propsPanelOffsetY, GetScreenWidth(), 28 }, tabText, 6, &currentTab);
+        GuiTabBar((Rectangle){ 0, propsPanelOffsetY, GetScreenWidth(), 28 }, 
+            "#176#PROJECT SETTINGS;#140#BUILD SETTINGS;#181#PLATFORM SETTINGS;#178#DEPLOY OPTIONS;#12#IMAGERY EDITION;#133#raylib CONFIG", NULL, &tabActive);
         GuiEnable();
 
         int categoryHeight = 12;
         for (int i = 0; i < project.entryCount; i++)
         {
-            if (project.entries[i].category == (currentTab + 1)) categoryHeight += (24 + 8);
+            if (project.entries[i].category == (tabActive + 1)) categoryHeight += (24 + 8);
         }
-        if ((categoryHeight > (GetScreenHeight() - 188 - 48 - 24)) && ((currentTab + 1) != RPC_CAT_PLATFORM))
+        if ((categoryHeight > (GetScreenHeight() - 188 - 48 - 24)) && ((tabActive + 1) != RPC_CAT_PLATFORM))
         {
             GuiScrollPanel((Rectangle){ 0, 188, GetScreenWidth(), GetScreenHeight() - 188 - 56 - 24 }, NULL,
                 (Rectangle){ 0, 188, GetScreenWidth() - 16, categoryHeight }, &panelScroll, &panelView);
@@ -809,7 +802,7 @@ static void UpdateDrawFrame(void)
 
         for (int i = 0, k = 0; i < project.entryCount; i++)
         {
-            if ((currentTab + 1) == project.entries[i].category)
+            if ((tabActive + 1) == project.entries[i].category)
             {
                 if (project.entries[i].category == RPC_CAT_PROJECT)
                 {
@@ -1488,10 +1481,14 @@ static int BuildProject(rpcProjectConfig project, int platform, const char *buil
                 // 1. Setup environment (...)
                 // 2. Build raylib library
                 // 3. Build project (MSBuild)
-                // TODO: Check if VS2022 project is available
-                ChangeDirectory(TextFormat("%s/projects/VS2022", GetDirectoryPath(inProjectFilePath)));
-                system(TextFormat("%s\\msbuild.exe %s.sln /target:%s /property:Configuration=Release /property:Platform=x64 /property:RaylibSrcPath = \"%s\"",
-                    rpcGetText(project, "PLATFORM_WINDOWS_MSBUILD_PATH"), rpcGetText(project, "PROJECT_INTERNAL_NAME"), rpcGetText(project, "PROJECT_INTERNAL_NAME"), rpcGetText(project, "RAYLIB_SRC_PATH")));
+                // Check if VS2022 project is available
+                if (DirectoryExists(TextFormat("%s/projects/VS2022", GetDirectoryPath(inProjectFilePath))))
+                {
+                    ChangeDirectory(TextFormat("%s/projects/VS2022", GetDirectoryPath(inProjectFilePath)));
+                    system(TextFormat("%s\\msbuild.exe %s.sln /target:%s /property:Configuration=Release /property:Platform=x64 /property:RaylibSrcPath = \"%s\"",
+                        rpcGetText(project, "PLATFORM_WINDOWS_MSBUILD_PATH"), rpcGetText(project, "PROJECT_INTERNAL_NAME"), rpcGetText(project, "PROJECT_INTERNAL_NAME"), rpcGetText(project, "RAYLIB_SRC_PATH")));
+                }
+                else LOG("WARNING: VS2022 project not found\n");
 
                 // TODO: Copy VS2022 build output to build directory
             }
@@ -1670,6 +1667,7 @@ static int BuildProject(rpcProjectConfig project, int platform, const char *buil
             {
                 // Rebuild raylib library for current platform
                 ChangeDirectory(TextFormat("%s", rpcGetText(project, "RAYLIB_SRC_PATH")));
+
                 // TODO: Check if we have "raylib.h rcore.c rshapes.c...", RAYLIB_SRC_PATH could
                 // not be properly configured and be left in another folder with a Makefile (same rpb directory)
                 //system("make PLATFORM=PLATFORM_WEB -B");
