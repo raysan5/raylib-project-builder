@@ -133,6 +133,8 @@
 #include <math.h>                           // Required for: powf()
 #include <time.h>                           // Required for: time(), localtime()
 
+//#define COMMAND_LINE_ONLY
+
 //----------------------------------------------------------------------------------
 // Defines and Macros
 //----------------------------------------------------------------------------------
@@ -356,9 +358,9 @@ static const char *CallBeforeWebUnload(int eventType, const void *reserved, void
 //------------------------------------------------------------------------------------
 int main(int argc, char *argv[])
 {
-#if !defined(_DEBUG)
+//#if !defined(_DEBUG)
     SetTraceLogLevel(LOG_NONE);         // Disable raylib trace log messsages
-#endif
+//#endif
 #if defined(COMMAND_LINE_ONLY)
     ProcessCommandLine(argc, argv);
 #else
