@@ -313,6 +313,7 @@ static bool showLoadDirectoryDialog = false;
 static bool showLoadProjectDialog = false;
 static bool showSaveAsProjectDialog = false;
 static bool showBuildProjectDialog = false;
+static bool buildProjectDeferred = false;       // Defer project bulding to show message
 
 static int projectEditProperty = -1;
 //-----------------------------------------------------------------------------------
@@ -776,9 +777,9 @@ static void UpdateDrawFrame(void)
 
             GuiDisable();
         }
-        
+
         GuiSetStyle(TABBAR, TAB_ITEMS_WIDTH, 172);
-        GuiTabBar((Rectangle){ 0, propsPanelOffsetY, GetScreenWidth(), 28 }, 
+        GuiTabBar((Rectangle){ 0, propsPanelOffsetY, GetScreenWidth(), 28 },
             "#176#PROJECT SETTINGS;#140#BUILD SETTINGS;#181#PLATFORM SETTINGS;#178#DEPLOY OPTIONS;#12#IMAGERY EDITION;#133#raylib CONFIG", NULL, &tabActive);
         GuiEnable();
 
@@ -1131,6 +1132,23 @@ static void UpdateDrawFrame(void)
 
         // GUI: Build Project Dialog
         //----------------------------------------------------------------------------------------
+        if (buildProjectDeferred)
+        {
+            // NOTE: Project building is deferred one frame to show a building dialog message,
+            // a temporal solution before moving building into separate processes or threads
+
+            // Build project to output directory defined
+            BuildProject(project, currentPlatform, outProjectFilePath);
+
+#if defined(PLATFORM_WEB)
+            // Download file from MEMFS (emscripten memory filesystem)
+            // NOTE: Second argument must be a simple filename (can't use directories)
+            // NOTE: Included security check to (partially) avoid malicious code on PLATFORM_WEB
+            if (strchr(outFileName, '\'') == NULL) emscripten_run_script(TextFormat("saveFileFromMEMFSToDisk('%s','%s')", outFileName, GetFileName(outFileName)));
+#endif
+            buildProjectDeferred = false;
+        }
+
         if (showBuildProjectDialog)
         {
 #if defined(CUSTOM_MODAL_DIALOGS)
@@ -1140,18 +1158,30 @@ static void UpdateDrawFrame(void)
 #endif
             if (result == 1)
             {
-                // Build project to output directory defined
-                BuildProject(project, currentPlatform, outProjectFilePath);
-
-            #if defined(PLATFORM_WEB)
-                // Download file from MEMFS (emscripten memory filesystem)
-                // NOTE: Second argument must be a simple filename (can't use directories)
-                // NOTE: Included security check to (partially) avoid malicious code on PLATFORM_WEB
-                if (strchr(outFileName, '\'') == NULL) emscripten_run_script(TextFormat("saveFileFromMEMFSToDisk('%s','%s')", outFileName, GetFileName(outFileName)));
-            #endif
+                buildProjectDeferred = true;
             }
 
             if (result >= 0) showBuildProjectDialog = false;
+        }
+
+        // NOTE: Project building deferred implies showing message window
+        // a frame before actually start building project (blocking processes)
+        if (buildProjectDeferred)
+        {
+            // Show project building screen
+            DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), Fade(GetColor(GuiGetStyle(DEFAULT, BACKGROUND_COLOR)), 0.8f));
+
+            GuiPanel((Rectangle){ 0, GetScreenHeight()/2 - 300/2, GetScreenWidth(), 300 }, NULL);
+            GuiSetIconScale(3);
+            GuiSetStyle(DEFAULT, TEXT_SIZE, GuiGetFont().baseSize*3);
+            GuiSetStyle(LABEL, TEXT_ALIGNMENT, TEXT_ALIGN_CENTER);
+            GuiLabel((Rectangle){ 0, GetScreenHeight()/2 - 300/2 + 20, GetScreenWidth(), 80 }, "#219#");
+            GuiLabel((Rectangle){ 0, GetScreenHeight()/2 - 300/2 + 90, GetScreenWidth(), 80 }, "BUILDING PROJECT for TARGET PLATFORM");
+            //GuiSetIconScale(2);
+            GuiLabel((Rectangle){ 0, GetScreenHeight()/2 - 300/2 + 180, GetScreenWidth(), 80 }, "#220#WARNING: It could take some seconds...");
+            GuiSetStyle(LABEL, TEXT_ALIGNMENT, TEXT_ALIGN_LEFT);
+            GuiSetStyle(DEFAULT, TEXT_SIZE, GuiGetFont().baseSize);
+            GuiSetIconScale(1);
         }
         //----------------------------------------------------------------------------------------
 
