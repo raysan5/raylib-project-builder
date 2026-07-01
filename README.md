@@ -2,8 +2,6 @@
 
 ![raylib project builder](screenshots/rpb_v010_shot01.png)
 
-### [USE `rpb` TOOL ONLINE!](https://raysan5.itch.io/raylib-project-builder)
-
 ## What can I do with `rpb`?
 
 `rpb` can help you to automatically build your raylib projects for multiple platforms. Projects created with `rpc`, raylib project creator, include a `.rpc` file with all the configuration parameters required to automatize project building; `rpb` can read `.rpc` config files and build defined project for multiple platforms. Supported target platforms depend on the Host platform and installed tooling.
@@ -29,13 +27,17 @@ Open the `rpb` tool desktop interface and open/drag&drop your `.rpc` project fil
 
 `rpb` can build for multiple platforms, depending on the Host platform and installed SDKs
 
-| Host Platform | Target Platforms | Notes           |
+| Host Platform | Target Platforms | Requirements    |
 | :------------ | :--------------: | :-------------- |
-| Windows       | Windows<br>Linux<br>Wasm<br>Android |  |
-| Linux         | Linux<br>Wasm |  |
-| FreeBSD       | FreeBSD |  |
-| macOS         | macOS<br>Wasm |  |
-| Wasm          | ...  | No targets supported as web-local but any as remote-server frontend |
+| Windows       | Windows          | `w64devkit` or `VS2022` |
+| Windows       | Linux            | `gcc` or `clang` |
+| Windows       | Wasm             | `emsdk` |
+| Windows       | Android          | `Android SDK`<br>`Android NDK` |
+| Linux         | Linux            | `gcc` or `clang` |
+| Linux         | Wasm             | `emsdk` |
+| macOS         | macOS            | `clang` |
+| macOS         | Wasm             | `emsdk` |
+| Wasm          | ...              | _remote-server setup_ |
 
 _NOTE: More platforms can be added in the future_
 
@@ -105,12 +107,12 @@ project-repo-name/
 
 **File Controls**
 
- - `LCTRL + O - Load project config (.rpc)
- - `LCTRL + S - Save current project config
- - `LCTRL + LSHFT + S - SaveAs current project config
+ - `LCTRL+O` - Load project config (.rpc)
+ - `LCTRL+S` - Save current project config
+ - `LCTRL+LSHFT+S` - SaveAs current project config
 
 **Build Controls**
- - `LCTRL + B - Build current platform
+ - `LCTRL+B` - Build current platform
 
 ## Command-line interface
 
