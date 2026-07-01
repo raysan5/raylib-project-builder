@@ -1351,11 +1351,11 @@ static void ProcessCommandLine(int argc, char *argv[])
             printf("  > Project internal name:   %s\n", rpcGetText(config, "PROJECT_INTERNAL_NAME"));
             printf("  > Project commercial name: %s\n", rpcGetText(config, "PROJECT_COMMERCIAL_NAME"));
             printf("  > Project short name:      %s\n", rpcGetText(config, "PROJECT_SHORT_NAME"));
-            printf("  > Project version:         %s\n", rpcGetText(config, "PROJECT_VERSION"));        
+            printf("  > Project version:         %s\n", rpcGetText(config, "PROJECT_VERSION"));
             printf("  > Project description:     %s\n", rpcGetText(config, "PROJECT_DESCRIPTION"));
-            printf("  > Project publisher name:  %s\n", rpcGetText(config, "PROJECT_PUBLISHER_NAME")); 
-            printf("  > Project developer name:  %s\n", rpcGetText(config, "PROJECT_DEVELOPER_NAME")); 
-            printf("  > Project developer url:   %s\n\n", rpcGetText(config, "PROJECT_DEVELOPER_URL"));  
+            printf("  > Project publisher name:  %s\n", rpcGetText(config, "PROJECT_PUBLISHER_NAME"));
+            printf("  > Project developer name:  %s\n", rpcGetText(config, "PROJECT_DEVELOPER_NAME"));
+            printf("  > Project developer url:   %s\n\n", rpcGetText(config, "PROJECT_DEVELOPER_URL"));
 
             // NOTE: Build output path validation done inside BuildProject()
 
