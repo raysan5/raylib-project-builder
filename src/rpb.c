@@ -558,9 +558,23 @@ static void UpdateDrawFrame(void)
             if (saveProjectRequired) SetWindowTitle(TextFormat("%s v%s - %s*", toolName, toolVersion, GetFileName(inProjectFilePath)));
             else SetWindowTitle(TextFormat("%s v%s - %s", toolName, toolVersion, GetFileName(inProjectFilePath)));
         }
-        else if (!IsPathFile(droppedFiles.paths[0])) // Dropped directory
+        else if (IsPathDirectory(droppedFiles.paths[0])) // Dropped directory
         {
-            // TODO: Check if it is a valid project directory and contains a .rpc file
+            // Check if it is a valid project directory and contains a .rpc file
+            FilePathList files = LoadDirectoryFilesEx(droppedFiles.paths[0], ".rpc", false);
+
+            if (files.count > 0)
+            {
+                strcpy(inProjectFilePath, files.paths[0]);
+
+                rpcUnloadProjectConfig(project);
+                project = rpcLoadProjectConfig(inProjectFilePath);
+
+                SetWindowTitle(TextFormat("%s v%s - %s", toolName, toolVersion, GetFileName(inProjectFilePath)));
+            }
+            else LOG("WARNING: Dropped directory does not contain a raylib projeect config file (.rpc)\n");
+
+            UnloadDirectoryFiles(files);
         }
 
         /*
