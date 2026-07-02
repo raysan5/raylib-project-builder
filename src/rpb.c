@@ -1479,18 +1479,17 @@ static int BuildProject(rpcProjectConfig project, int platform, const char *buil
     // 5. Package project
     //    - Sign executable and/or package
     //    - Compress output build (.zip/.7z)
-    //    - Create installer for target platform
+    //    - Create installer or bundle for target platform
     // 6. Run project (depends on host platform)
 
-    LOG("INFO: Starting project building for requested platform...\n");
+    LOG("INFO: Starting project building for platform: %s (%s)\n", platformNames[platform], hostArch);
 
-    // Check build output path
+    // Check build output path (relative or absolute)
     // WARNING: Using global inProjectFilePath to get output path
     char buildOutputPath[256] = { 0 }; // Project build path
     if (buildPath[0] == '\0')
     {
         // Read default built path from .rpc file (relative to .rpc location)
-        //strcpy(buildOutputPath, TextFormat("%s/%s", GetDirectoryPath(inProjectFilePath), rpcGetText(project, "BUILD_OUTPUT_PATH")));
 #if defined(_WIN32)
         TextCopy(buildOutputPath, TextFormat("%s\\%s", GetDirectoryPath(inProjectFilePath), rpcGetText(project, "BUILD_OUTPUT_PATH")));
 #else
@@ -1527,24 +1526,35 @@ static int BuildProject(rpcProjectConfig project, int platform, const char *buil
     {
         case RPC_PLATFORM_WINDOWS:
         {
-            LOG("INFO: Building project for platform: %s\n", platformNames[platform]);
-
 #if defined(_WIN32)
+            // HOST PLATFORM: Windows
+            //
+            // ENVIRONMENT REQUIREMENTS:
+            //    - C/C++ compiler (GCC) + GNU Tools (Makefile): w64devkit: https://github.com/skeeto/w64devkit/releases
+            //    - C/C++ compiler (Visual Studio Build Tools - MSBuild): https://visualstudio.microsoft.com/downloads/
+            //
+
             if (TextIsEqual(rpcGetText(project, "PLATFORM_WINDOWS_DEFAULT_TOOLCHAIN"), "MSBUILD"))
             {
                 // 1. Setup environment (...)
+                
                 // 2. Build raylib library
+                //    - VS2022 project should already include raylib as a dependency to build
+                
                 // 3. Build project (MSBuild)
                 // Check if VS2022 project is available
                 if (DirectoryExists(TextFormat("%s/projects/VS2022", GetDirectoryPath(inProjectFilePath))))
                 {
                     ChangeDirectory(TextFormat("%s/projects/VS2022", GetDirectoryPath(inProjectFilePath)));
-                    system(TextFormat("%s\\msbuild.exe %s.sln /target:%s /property:Configuration=Release /property:Platform=x64 /property:RaylibSrcPath = \"%s\"",
+                    system(TextFormat("%s\\msbuild.exe %s.sln /target:%s /property:Configuration=Release /property:Platform=x64 /property:RaylibSrcPath=\"%s\"",
                         rpcGetText(project, "PLATFORM_WINDOWS_MSBUILD_PATH"), rpcGetText(project, "PROJECT_INTERNAL_NAME"), rpcGetText(project, "PROJECT_INTERNAL_NAME"), rpcGetText(project, "RAYLIB_SRC_PATH")));
                 }
                 else LOG("WARNING: VS2022 project not found\n");
 
-                // TODO: Copy VS2022 build output to build directory
+                // Copy VS2022 build result to build output directory
+                FileCopy(TextFormat("%s/projects/VS2022/build/%s/bin/x64/Release/%s.exe",
+                    GetDirectoryPath(inProjectFilePath), rpcGetText(project, "PROJECT_INTERNAL_NAME"), rpcGetText(project, "PROJECT_INTERNAL_NAME")),
+                    TextFormat("%s/%s.exe", buildOutputPath, rpcGetText(project, "PROJECT_INTERNAL_NAME")));
             }
             else
             {
@@ -1586,7 +1596,13 @@ static int BuildProject(rpcProjectConfig project, int platform, const char *buil
         case RPC_PLATFORM_LINUX:
         {
 #if defined(_WIN32)
-            // Host platform: Windows --> Requires WSL2 installed with required libraries
+            // HOST PLATFORM: Windows
+            //
+            // ENVIRONMENT REQUIREMENTS:
+            //    - WSL2 (Windows Subsystem for Linux 2)
+            //    - Install libraries: libasound2-dev libx11-dev libxrandr-dev libxi-dev libgl1-mesa-dev
+            //          libglu1-mesa-dev libxcursor-dev libxinerama-dev libwayland-dev libxkbcommon-dev
+            //
 
             // 1. Setup environment
             PUTENV("PATH=%PATH%;C:\\Windows\\System32"); // Make sure WSL is available in the path
@@ -1622,7 +1638,12 @@ static int BuildProject(rpcProjectConfig project, int platform, const char *buil
                 system(TextFormat("wsl %s/%s", PathToWSL(buildOutputPath), rpcGetText(project, "PROJECT_INTERNAL_NAME")));
             }
 #elif defined(__linux__)
-            // Host platform: Linux --> Requires raylib library installed
+            // HOST PLATFORM: Linux
+            //
+            // ENVIRONMENT REQUIREMENTS:
+            //    - Install libraries: libasound2-dev libx11-dev libxrandr-dev libxi-dev libgl1-mesa-dev
+            //          libglu1-mesa-dev libxcursor-dev libxinerama-dev libwayland-dev libxkbcommon-dev
+            //
 
             // 1. Setup environment
             PUTENV(TextFormat("PROJECT_BUILD_PATH=%s", buildOutputPath));
@@ -1653,15 +1674,40 @@ static int BuildProject(rpcProjectConfig project, int platform, const char *buil
                 else LOG("WARNING: Project executable file not found\n");
             }
 #else
-            LOG("WARNING: Target platform not supported on this host platform\n");
+            LOG("WARNING: Target platform not supported on current host platform\n");
 #endif
         } break;
         case RPC_PLATFORM_MACOS:
         {
 #if defined(__APPLE__)
-            // Host platform: macOS --> Requires raylib library installed
+            // HOST PLATFORM: macOS
+            //
+            // ENVIRONMENT REQUIREMENTS:
+            //    - Installed frameworks: CoreVideo IOKit Cocoa OpenGL
+            //
 
-            LOG("INFO: Building project for platform: %s\n", platformNames[platform]); // TODO: Log architecture: macOS (arm64)
+            // macOS bundle app structure to be generated:
+            // NOTE: Most directories not required at the moment
+            /*
+            project_name.app/
+            └── Contents/
+                ├── Info.plist
+                ├── MacOS/
+                │   └── project_name        // Executable binary
+                ├── Resources/
+                │   ├── icon.icns
+                │   ├── images/
+                │   ├── sounds/
+                │   └── localization files
+                ├── Frameworks/
+                │   ├── library.framework
+                │   └── libraylib.dylib     // In case of dynamic raylib
+                ├── PlugIns/
+                ├── SharedSupport/
+                ├── _CodeSignature/
+                │   └── CodeResources
+                └── PkgInfo
+            */
 
             // 1. Setup environment
             // NOTE: Create required dirctory structure for application
@@ -1704,11 +1750,12 @@ static int BuildProject(rpcProjectConfig project, int platform, const char *buil
         } break;
         case RPC_PLATFORM_WASM:
         {
-            // Host platform: Windows/Linux/macOS --> Considering all hosts
-            // WARNING: Emscripten must be installed!
-
-            LOG("INFO: Building project for platform: %s\n", platformNames[platform]);
-
+            // HOST PLATFORM: Windows/Linux/macOS
+            //
+            // ENVIRONMENT REQUIREMENTS:
+            //    - Emscripten SDK: https://github.com/emscripten-core/emsdk
+            // 
+ 
             // 1. Setup environment
             PUTENV(TextFormat("PROJECT_BUILD_PATH=%s", buildOutputPath));
 #if defined(_WIN32)
@@ -1769,9 +1816,59 @@ static int BuildProject(rpcProjectConfig project, int platform, const char *buil
         } break;
         case RPC_PLATFORM_ANDROID:
         {
+            // HOST PLATFORM: Windows/Linux/macOS
+            //
+            // ENVIRONMENT REQUIREMENTS:
+            //    - Android NDK: https://developer.android.com/ndk/downloads
+            //    - Android SDK: https://developer.android.com/tools/releases/platform-tools
+            //    - GNU Make (depends on platform)
+            // 
+       
+            // 1. Setup environment (...)
+#if defined(_WIN32)
+            // NOTE: Environmnt expected to be pre-configured by users
+            system("export ANDROID_NDK=C:\\android-ndk");
+#elif defined(__linux__)
+            // Download and intall Android NDK package
+            //system("mkdir -p ~/android-ndk");
+            //system("cd ~/android-ndk/");
+            //system("curl -O https://dl.google.com/android/repository/android-ndk-r29c-linux-x86_64.zip");
+            //system("unzip android-ndk-r29c-linux-x86_64.zip");
+            //system("export ANDROID_NDK=/home/android-ndk/android-ndk-r29c");
+#elif defined(__APPLE__)
+
+#endif
+            // 2. Build raylib library
+            if (rpcGetValue(project, "RAYLIB_FLAG_BUILDING_REQUIRED") == 1)
+            {
+                // Rebuild raylib library for current platform
+                ChangeDirectory(TextFormat("%s", rpcGetText(project, "RAYLIB_SRC_PATH")));
+                system("make PLATFORM=PLATFORM_ANDROID -B");
+            }
+
+            // 3. Build project (Makefile)
+            ChangeDirectory(TextFormat("%s\\src", GetDirectoryPath(inProjectFilePath)));
+            system(TextFormat("make PLATFORM=PLATFORM_ANDROID PROJECT_BUILD_PATH=%s -B", buildOutputPath));
+
+            // 4. Process assets
+            // NOTE: Copy to destination assets output, directory created automatically
+            DirectoryCopy(TextFormat("%s/%s", GetDirectoryPath(inProjectFilePath), rpcGetText(project, "PROJECT_ASSETS_PATH")),
+                TextFormat("%s/%s", buildOutputPath, rpcGetText(project, "PROJECT_ASSETS_OUTPUT_PATH")));
+
+            // 5. Package project (...)
+
+            // 6. Run project (...)
+
         } break;
         case RPC_PLATFORM_ESP32:
         {
+            // HOST PLATFORM: Windows/Linux
+            //
+            // ENVIRONMENT REQUIREMENTS:
+            //    - ESP-IDF (Espressif's IoT Development Framework): https://docs.espressif.com/projects/esp-idf/en/stable/esp32/get-started/index.html
+            //    - Raylib for ESP-IDF: https://components.espressif.com/components/georgik/raylib/versions/6.0.0~2/readme
+            // 
+
             #if defined(_WIN32)
 
             #elif defined(__linux__)
@@ -1780,6 +1877,13 @@ static int BuildProject(rpcProjectConfig project, int platform, const char *buil
         } break;
         case RPC_PLATFORM_DREAMCAST:
         {
+            // HOST PLATFORM: Windows/Linux
+            //
+            // ENVIRONMENT REQUIREMENTS:
+            //    - DreamSDK (including KallistiOS): https://github.com/dreamsdk/dreamsdk/releases/tag/r4-4.0.11.2508
+            //    - raylib4Dreamcast: https://github.com/raylib4Consoles/raylib4Dreamcast
+            // 
+
             #if defined(_WIN32)
 
             #elif defined(__linux__)
@@ -1788,6 +1892,13 @@ static int BuildProject(rpcProjectConfig project, int platform, const char *buil
         } break;
         case RPC_PLATFORM_SWITCH:
         {
+            // HOST PLATFORM: Windows/Linux
+            //
+            // ENVIRONMENT REQUIREMENTS:
+            //    - Switch devkit + SDK (private, only for registered developers)
+            //    - raylib Switch port (private): ray@raylib.com
+            // 
+
             #if defined(_WIN32)
 
             #elif defined(__linux__)
