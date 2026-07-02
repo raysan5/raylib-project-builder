@@ -452,7 +452,7 @@ int main(int argc, char *argv[])
     //-------------------------------------------------------------------------------------
     if ((inProjectFilePath[0] != '\0') && (IsFileExtension(inProjectFilePath, ".rpc")))
     {
-        rpcProjectConfig prjsrc = rpcLoadProjectConfig(inProjectFilePath);    // Load tool data from file
+        rpcProjectConfig prjsrc = rpcLoadProjectConfig(inProjectFilePath); // Load tool data from file
         rpcUnloadProjectConfig(project);
         project = rpcLoadProjectConfig("resources/project_template.rpc");
 
@@ -619,25 +619,30 @@ static void UpdateDrawFrame(void)
     if (((IsKeyDown(KEY_LEFT_CONTROL) && IsKeyPressed(KEY_S)) || mainToolbarState.btnLoadFilePressed) && saveProjectRequired)
     {
         // File to be updated with changes: inProjectFilePath
-        // Update project configuration .rpc to defined values by [rpc] tool
-        rini_data data = rini_load_full("resources/project_template.rpc");
-        for (unsigned int i = 0; i < data.count; i++)
+        if (FileExists(inProjectFilePath))
         {
-            for (int j = 0; j < project.entryCount; j++)
+            // Update project configuration template .rpc with redefined project values
+            rini_data data = rini_load_full("resources/project_template.rpc");
+
+            for (unsigned int i = 0; i < data.count; i++)
             {
-                if (TextIsEqual(project.entries[j].key, data.entries[i].key) &&
-                    !TextIsEqual(project.entries[j].text, data.entries[i].text))
+                for (int j = 0; j < project.entryCount; j++)
                 {
-                    memset(data.entries[i].text, 0, RINI_MAX_TEXT_SIZE);
-                    strcpy(data.entries[i].text, project.entries[j].text);
-                    // TODO: Check project.entries[j].type to set data.values[i].value and data.values[i].is_text
+                    if (TextIsEqual(project.entries[j].key, data.entries[i].key) &&
+                        !TextIsEqual(project.entries[j].text, data.entries[i].text))
+                    {
+                        memset(data.entries[i].text, 0, RINI_MAX_TEXT_SIZE);
+                        strcpy(data.entries[i].text, project.entries[j].text);
+
+                        // TODO: Check project.entries[j].type to set data.values[i].value and data.values[i].is_text
+                    }
                 }
             }
-        }
-        rini_save(data, inProjectFilePath);
-        saveProjectRequired = false;
+            rini_save(data, inProjectFilePath);
+            saveProjectRequired = false;
 
-        SetWindowTitle(TextFormat("%s v%s - %s", toolName, toolVersion, GetFileName(inProjectFilePath)));
+            SetWindowTitle(TextFormat("%s v%s - %s", toolName, toolVersion, GetFileName(inProjectFilePath)));
+        }
     }
 
     // Show closing window on ESC
@@ -1100,6 +1105,7 @@ static void UpdateDrawFrame(void)
                 // File to be updated with changes: inProjectFilePath
                 // Update project configuration .rpc to defined values by [rpc] tool
                 rini_data data = rini_load_full("resources/project_template.rpc");
+
                 for (unsigned int i = 0; i < data.count; i++)
                 {
                     for (int j = 0; j < project.entryCount; j++)
@@ -1109,10 +1115,12 @@ static void UpdateDrawFrame(void)
                         {
                             memset(data.entries[i].text, 0, RINI_MAX_TEXT_SIZE);
                             strcpy(data.entries[i].text, project.entries[j].text);
+
                             // TODO: Check project.entries[j].type to set data.values[i].value and data.values[i].is_text
                         }
                     }
                 }
+
                 rini_save(data, inProjectFilePath);
 
                 saveProjectRequired = false;
