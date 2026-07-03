@@ -1469,7 +1469,7 @@ static void ProcessCommandLine(int argc, char *argv[])
                     // Update required property on loaded project (if key found)
                     int updated = rpcSetText(config, keyValue[0], keyValue[1]);
                     if (updated == -1) printf("WARNING: Property to update not found in provided project config: %s\n", keyValue[0]);
-                    else printf("INFO: Project property %s updated: %s\n", keyValue[0], keyValue[1]);
+                    else printf("INFO: Project property updated: %s=%s\n", keyValue[0], keyValue[1]);
                 }
                 else printf("WARNING: Provided property not valid, make sure to follow 'PROPERTY=value' format\n");
 
@@ -1483,9 +1483,8 @@ static void ProcessCommandLine(int argc, char *argv[])
     if (config.entryCount > 0)
     {
         printf("INFO: Working directory: %s\n", GetWorkingDirectory());
-        char inputFilePath[256] = { 0 };
 
-        printf("INFO: [%s] Loaded input project: %s\n", GetFileName(inputFilePath), rpcGetText(config, "PROJECT_INTERNAL_NAME"));
+        printf("INFO: Loaded input project: %s\n", rpcGetText(config, "PROJECT_INTERNAL_NAME"));
 
         printf("  > Project repo name:       %s\n", rpcGetText(config, "PROJECT_REPO_NAME"));
         printf("  > Project internal name:   %s\n", rpcGetText(config, "PROJECT_INTERNAL_NAME"));
@@ -1671,7 +1670,7 @@ static int BuildProject(rpcProjectConfig project, int platform, const char *buil
     {
         // Create build directory if required
         MakeDirectory(buildOutputPath);
-        LOG("INFO: [%s] Created build output path", buildOutputPath);
+        LOG("INFO: [%s] Created build output path\n", buildOutputPath);
     }
 
 #if defined(__EMSCRIPTEN__)
@@ -1712,6 +1711,8 @@ static int BuildProject(rpcProjectConfig project, int platform, const char *buil
                 // Check if VS2022 project is available
                 if (DirectoryExists(TextFormat("%s/projects/VS2022", GetDirectoryPath(inProjectFilePath))))
                 {
+                    LOG("INFO: [%s] VS2022 project found\n", TextFormat("%s/projects/VS2022", GetDirectoryPath(inProjectFilePath)));
+
                     ChangeDirectory(TextFormat("%s/projects/VS2022", GetDirectoryPath(inProjectFilePath)));
                     system(TextFormat("%s\\msbuild.exe %s.sln /target:%s /property:Configuration=Release /property:Platform=x64 /property:RaylibSrcPath=\"%s\"",
                         rpcGetText(project, "PLATFORM_WINDOWS_MSBUILD_PATH"), rpcGetText(project, "PROJECT_INTERNAL_NAME"), rpcGetText(project, "PROJECT_INTERNAL_NAME"), rpcGetText(project, "RAYLIB_SRC_PATH")));
@@ -1720,7 +1721,8 @@ static int BuildProject(rpcProjectConfig project, int platform, const char *buil
 
                 // Copy VS2022 build result to build output directory
                 FileCopy(TextFormat("%s/projects/VS2022/build/%s/bin/x64/Release/%s.exe",
-                    GetDirectoryPath(inProjectFilePath), rpcGetText(project, "PROJECT_INTERNAL_NAME"), rpcGetText(project, "PROJECT_INTERNAL_NAME")),
+                    GetDirectoryPath(inProjectFilePath), rpcGetText(project, "PROJECT_INTERNAL_NAME"), 
+                    rpcGetText(project, "PROJECT_INTERNAL_NAME")),
                     TextFormat("%s/%s.exe", buildOutputPath, rpcGetText(project, "PROJECT_INTERNAL_NAME")));
             }
             else
@@ -1744,6 +1746,8 @@ static int BuildProject(rpcProjectConfig project, int platform, const char *buil
 
             // 4. Process assets
             // NOTE: Copy to destination assets output, directory created automatically
+            LOG("INFO: Copying assets to output directory: %s\n",
+                TextFormat("%s/%s", buildOutputPath, rpcGetText(project, "PROJECT_ASSETS_OUTPUT_PATH")));
             DirectoryCopy(TextFormat("%s/%s", GetDirectoryPath(inProjectFilePath), rpcGetText(project, "PROJECT_ASSETS_PATH")),
                 TextFormat("%s/%s", buildOutputPath, rpcGetText(project, "PROJECT_ASSETS_OUTPUT_PATH")));
 
@@ -2109,7 +2113,7 @@ static int DirectoryCopy(const char *srcPath, const char *dstPath)
 
         UnloadDirectoryFiles(files);
     }
-    else LOG("WARNING: Source directory does not exist");
+    else LOG("WARNING: Source directory does not exist\n");
 
     return result;
 }
