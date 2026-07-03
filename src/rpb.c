@@ -1409,11 +1409,14 @@ static void ProcessCommandLine(int argc, char *argv[])
 
                     // Validate input project file
                     if (IsPathAbsolute(argv[i + 1]) && FileExists(argv[i + 1])) strcpy(inputFilePath, argv[i + 1]);
-                    else if (FileExists(TextFormat("%s/%s", GetWorkingDirectory(), argv[i + 1]))) strcpy(inputFilePath, TextFormat("%s/%s", GetWorkingDirectory(), inFileName));
+                    else if (FileExists(TextFormat("%s/%s", GetWorkingDirectory(), argv[i + 1]))) 
+                        strcpy(inputFilePath, TextFormat("%s/%s", GetWorkingDirectory(), argv[i + 1]));
                     else printf("WARNING: [%s] Input project file can not be found\n", argv[i + 1]);
 
                     if (inputFilePath[0] != '\0')
                     {
+                        printf("INFO: Loading project config file: %s\n", inputFilePath);
+
                         // Load input project file
                         // NOTE: It should be loaded here to allow properties overwrite by command line
                         config = rpcLoadProjectConfig(inputFilePath);
@@ -1460,7 +1463,7 @@ static void ProcessCommandLine(int argc, char *argv[])
                 int keyValueCount = 0;
                 char **keyValue = TextSplit(argv[i + 1], '=', &keyValueCount);
 
-                if (config.entryCount == 0) printf("WARNING: Project config not loaded, propeerty can't be updated\n");
+                if (config.entryCount == 0) printf("WARNING: Project config not loaded, property can't be updated\n");
                 else if (keyValueCount == 2)
                 {
                     // Update required property on loaded project (if key found)
