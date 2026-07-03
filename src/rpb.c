@@ -1642,10 +1642,20 @@ static int BuildProject(rpcProjectConfig project, int platform, const char *buil
     }
 
 #if defined(__EMSCRIPTEN__)
-    // TODO: Connect to server to build project remotely
-#endif
-//#else
-
+    // TODO: Connect to server to build project remotely for required platform,
+    // depending on the target platform, it should use a different Host
+    switch (platform)
+    {
+        case RPC_PLATFORM_WINDOWS: break;   // Use Host server: Windows
+        case RPC_PLATFORM_LINUX: break;     // Use Host server: Linux
+        case RPC_PLATFORM_MACOS: break;     // Use Host server: macOS
+        case RPC_PLATFORM_WASM: break;      // Use Host server: Windows/Linux
+        case RPC_PLATFORM_ANDROID: break;   // Use Host server: Windows/Linux
+        case RPC_PLATFORM_ESP32: break;     // Use Host server: Windows/Linux
+        case RPC_PLATFORM_DREAMCAST: break; // Use Host server: Windows/Linux
+        default: break;
+    }
+#else
     switch (platform) // Target platform
     {
         case RPC_PLATFORM_WINDOWS:
@@ -2034,6 +2044,7 @@ static int BuildProject(rpcProjectConfig project, int platform, const char *buil
             LOG("WARNING: Target build platform not supported on this host platform\n");
         }
     }
+#endif  //__EMSCRIPTEN__
 
     runProjectRequired = false;
     return result;
