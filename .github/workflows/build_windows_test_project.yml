@@ -31,7 +31,7 @@ jobs:
         path: ${{ env.PROJECT_REPO_NAME }}
       
     - name: Checkout raylib repo
-      uses: actions/checkout@v4
+      uses: actions/checkout@master
       with:
         repository: raysan5/raylib
         path: raylib
@@ -52,7 +52,7 @@ jobs:
       shell: cmd
 
     - name: Setup MSBuild path
-      uses: microsoft/setup-msbuild@v2
+      uses: microsoft/setup-msbuild@v3
 
     - name: Build raylib Library + Product (VS2022 solution)
       run: |
