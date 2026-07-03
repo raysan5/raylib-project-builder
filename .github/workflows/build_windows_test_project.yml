@@ -72,8 +72,9 @@ jobs:
 
     - name: Generate Test Project Artifacts
       run: |
-        dir ${{ env.PROJECT_REPO_NAME }}/test/cool_project
-        7z a .\cool_project.zip .\${{ env.PROJECT_REPO_NAME }}/test/cool_project
+        cd ${{ env.PROJECT_REPO_NAME }}
+        dir ${{ env.PROJECT_REPO_NAME }}\test\cool_project\build
+        7z a .\cool_project.zip .\${{ env.PROJECT_REPO_NAME }}\test\cool_project\build
       shell: cmd
 
     - name: Upload Test Project Artifacts
@@ -81,5 +82,5 @@ jobs:
       with:
         name: cool_project.zip
         path: |
-            ./cool_project
+            ./cd ${{ env.PROJECT_REPO_NAME }}
             !./cool_project.zip
