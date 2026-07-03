@@ -254,7 +254,7 @@ static const char *platformOutExtension[] = { ".exe", "", ".app", ".html", ".apk
 static rpcProjectConfig project = { 0 };        // Project config data
 
 static char inProjectFilePath[256] = { 0 };     // Project file path
-static char outProjectFilePath[256] = { 0 };    // Project output path (build path)
+static char buildProjectDirPath[256] = { 0 };   // Project build path (it could generate temp directories)
 
 static bool showMessageExit = false;            // Show message: exit (quit)
 
@@ -593,9 +593,9 @@ static void UpdateDrawFrame(void)
     if ((IsKeyDown(KEY_LEFT_CONTROL) && IsKeyPressed(KEY_B)) || mainToolbarState.btnBuildProjectPressed)
     {
 #if defined(_WIN32)
-        TextCopy(outProjectFilePath, TextFormat("%s\\%s", GetDirectoryPath(inFileName), rpcGetText(project, "BUILD_OUTPUT_PATH")));
+        TextCopy(buildProjectDirPath, TextFormat("%s\\%s", GetDirectoryPath(inFileName), rpcGetText(project, "BUILD_OUTPUT_PATH")));
 #else
-        TextCopy(outProjectFilePath, TextFormat("%s/%s", GetDirectoryPath(inFileName), rpcGetText(project, "BUILD_OUTPUT_PATH")));
+        TextCopy(buildProjectDirPath, TextFormat("%s/%s", GetDirectoryPath(inFileName), rpcGetText(project, "BUILD_OUTPUT_PATH")));
 #endif
         showBuildProjectDialog = true;
     }
@@ -891,9 +891,9 @@ static void UpdateDrawFrame(void)
         if (GuiButton((Rectangle){ 8, GetScreenHeight() - 24 - 8 - 40, GetScreenWidth() - 16, 40 }, "#131#BUILD and RUN PROJECT"))
         {
 #if defined(_WIN32)
-            TextCopy(outProjectFilePath, TextFormat("%s\\%s", GetDirectoryPath(inFileName), rpcGetText(project, "BUILD_OUTPUT_PATH")));
+            TextCopy(buildProjectDirPath, TextFormat("%s\\%s", GetDirectoryPath(inFileName), rpcGetText(project, "BUILD_OUTPUT_PATH")));
 #else
-            TextCopy(outProjectFilePath, TextFormat("%s/%s", GetDirectoryPath(inFileName), rpcGetText(project, "BUILD_OUTPUT_PATH")));
+            TextCopy(buildProjectDirPath, TextFormat("%s/%s", GetDirectoryPath(inFileName), rpcGetText(project, "BUILD_OUTPUT_PATH")));
 #endif
             showBuildProjectDialog = true;
             runProjectRequired = true;
@@ -1214,7 +1214,7 @@ static void UpdateDrawFrame(void)
             // a temporal solution before moving building into separate processes or threads
 
             // Build project to output directory defined
-            BuildProject(project, currentPlatform, outProjectFilePath);
+            BuildProject(project, currentPlatform, buildProjectDirPath);
 
 #if defined(PLATFORM_WEB)
             // Download file from MEMFS (emscripten memory filesystem)
@@ -1228,9 +1228,9 @@ static void UpdateDrawFrame(void)
         if (showBuildProjectDialog)
         {
 #if defined(CUSTOM_MODAL_DIALOGS)
-            int result = GuiFileDialog(DIALOG_TEXTINPUT, "Select build output path...", outProjectFilePath, "Ok;Cancel", NULL);
+            int result = GuiFileDialog(DIALOG_TEXTINPUT, "Select build output path...", buildProjectDirPath, "Ok;Cancel", NULL);
 #else
-            int result = GuiFileDialog(DIALOG_OPEN_DIRECTORY, "Select build output path...", outProjectFilePath, "", "");
+            int result = GuiFileDialog(DIALOG_OPEN_DIRECTORY, "Select build output path...", buildProjectDirPath, "", "");
 #endif
             if (result == 1)
             {
