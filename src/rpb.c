@@ -1355,6 +1355,7 @@ static void ShowCommandLineInfo(void)
 #elif defined(__EMSCRIPTEN__)
     printf("                                         - HOST: Web - Platforms: -\n");
 #endif
+    printf("    -r, --raylib <path>             : Redefine raylib src directory path\n");
 
     //printf("    -p, --package <platform>        : Package project for target platform\n");
     //printf("    -d, --deploy <store>            : Deploy package to target store\n");
@@ -1377,9 +1378,10 @@ static void ShowCommandLineInfo(void)
 static void ProcessCommandLine(int argc, char *argv[])
 {
     // CLI required variables
-    bool showUsageInfo = false;         // Toggle command line usage info
-    int buildPlatform = -1;             // Target build platform
-    char buildPath[256] = { 0 };  // Build output path
+    bool showUsageInfo = false;     // Toggle command line usage info
+    int buildPlatform = -1;         // Target build platform
+    char buildPath[256] = { 0 };    // Build output path
+    char raylibPath[256] = { 0 };   // raylib path
 
 #if defined(COMMAND_LINE_ONLY)
     if (argc == 1) showUsageInfo = true;
@@ -1409,7 +1411,7 @@ static void ProcessCommandLine(int argc, char *argv[])
         }
         else if ((strcmp(argv[i], "-o") == 0) || (strcmp(argv[i], "--output") == 0))
         {
-            // Check for valid upcoming argumment and valid file extension: output
+            // Check for valid upcoming argumment
             if (((i + 1) < argc) && (argv[i + 1][0] != '-'))
             {
                 strcpy(buildPath, argv[i + 1]);   // Read output path
@@ -1433,6 +1435,17 @@ static void ProcessCommandLine(int argc, char *argv[])
                 // WARNING: Requested build platform should be validated against host platform
             }
             else printf("WARNING: Format parameters provided not valid\n");
+        }
+        else if ((strcmp(argv[i], "-r") == 0) || (strcmp(argv[i], "--raylib") == 0))
+        {
+            // Check for valid upcoming argumment
+            if (((i + 1) < argc) && (argv[i + 1][0] != '-'))
+            {
+                strcpy(raylibPath, argv[i + 1]); // Read raylib path (needs validation)
+
+                i++;
+            }
+            else printf("WARNING: No output file provided\n");
         }
     }
 
@@ -1489,8 +1502,17 @@ static void ProcessCommandLine(int argc, char *argv[])
                 printf("WARNING: Revert to default platform: %s\n", platformNames[buildPlatform]);
             }
 #endif
-
             printf("INFO: Build output platform:   %s\n", platformNames[buildPlatform]);
+
+            if (raylibPath[0] != '\0')
+            {
+                if (DirectoryExists(raylibPath))
+                {
+                    rpcSetText(config, "RAYLIB_SRC_PATH", raylibPath); // Set raylib path to provided one
+                    rpcSetValue(config, "RAYLIB_FLAG_BUILDING_REQUIRED", 1); // Require raylib rebuild
+                }
+                else printf("WARNING: raylib path provided does not exist: %s\n", raylibPath);
+            }
 
             // Build provided project to output build directory for selected platform
             int result = BuildProject(config, buildPlatform, buildPath);
