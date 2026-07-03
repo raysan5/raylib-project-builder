@@ -68,10 +68,11 @@ jobs:
       run: |
         cd ${{ env.PROJECT_REPO_NAME }}/test/cool_project
         ../../projects/VS2022/build/rpb/bin/x64/Release/${{ env.PROJECT_NAME }}.exe -i cool_project.rpc --build Windows -p RAYLIB_SRC_PATH=..\..\..\..\..\..\raylib\src -p PLATFORM_WINDOWS_DEFAULT_TOOLCHAIN=MSBUILD
-        cd ../..
+        cd ..
 
     - name: Generate Test Project Artifacts
       run: |
+        cd ${{ env.PROJECT_REPO_NAME }}
         dir
         dir test\cool_project
         dir test\cool_project\build
