@@ -1339,7 +1339,7 @@ static void ShowCommandLineInfo(void)
     printf("\nOPTIONS:\n\n");
     printf("    -h, --help                      : Show tool version and command line usage help\n\n");
     printf("    -i, --input <project.rpc>       : Define input project config file (.rpc)\n");
-    printf("    -o, --output <path>             : Define output path for build\n");
+    printf("    -o, --output <path>             : Define build output path (default: build)\n");
     printf("                                      NOTE: If not defined, using defined one in .rpc\n\n");
 
     printf("    -b, --build <platform>          : Build project for required platform\n");
@@ -1420,6 +1420,10 @@ static void ProcessCommandLine(int argc, char *argv[])
                         // Load input project file
                         // NOTE: It should be loaded here to allow properties overwrite by command line
                         config = rpcLoadProjectConfig(inputFilePath);
+
+                        // WARNING: inProjectFilePath is required by BuildProject()
+                        // TODO: Avoid that GLOBAL variable!
+                        strcpy(inProjectFilePath, inputFilePath);
                     }
                 }
                 else printf("WARNING: Input file extension not recognized\n");
@@ -1611,6 +1615,7 @@ static int LoadProjectConfig(const char *inFilePath)
 
 // Build project for selected platform
 // WARNING: Build target platform support depends on host platform
+// GLOBALS required: inProjectFilePath, runProjectRequired
 static int BuildProject(rpcProjectConfig project, int platform, const char *buildPath)
 {
     int result = 0;
@@ -1673,6 +1678,8 @@ static int BuildProject(rpcProjectConfig project, int platform, const char *buil
         LOG("INFO: [%s] Created build output path\n", buildOutputPath);
     }
 
+    LOG("INFO: Build output path: %s\n", buildOutputPath);
+
 #if defined(__EMSCRIPTEN__)
     // TODO: Connect to server to build project remotely for required platform,
     // depending on the target platform, it should use a different Host
@@ -1711,11 +1718,13 @@ static int BuildProject(rpcProjectConfig project, int platform, const char *buil
                 // Check if VS2022 project is available
                 if (DirectoryExists(TextFormat("%s/projects/VS2022", GetDirectoryPath(inProjectFilePath))))
                 {
-                    LOG("INFO: [%s] VS2022 project found\n", TextFormat("%s/projects/VS2022", GetDirectoryPath(inProjectFilePath)));
+                    LOG("INFO: [%s] VS2022 project found\n", TextFormat("%sprojects/VS2022", GetDirectoryPath(inProjectFilePath)));
+
+                    //rpcGetText(project, "PLATFORM_WINDOWS_MSBUILD_PATH") --> msbuild should already b available on system path
 
                     ChangeDirectory(TextFormat("%s/projects/VS2022", GetDirectoryPath(inProjectFilePath)));
-                    system(TextFormat("%s\\msbuild.exe %s.sln /target:%s /property:Configuration=Release /property:Platform=x64 /property:RaylibSrcPath=\"%s\"",
-                        rpcGetText(project, "PLATFORM_WINDOWS_MSBUILD_PATH"), rpcGetText(project, "PROJECT_INTERNAL_NAME"), rpcGetText(project, "PROJECT_INTERNAL_NAME"), rpcGetText(project, "RAYLIB_SRC_PATH")));
+                    system(TextFormat("msbuild.exe %s.sln /target:%s /property:Configuration=Release /property:Platform=x64 /property:RaylibSrcPath=\"%s\"",
+                        rpcGetText(project, "PROJECT_INTERNAL_NAME"), rpcGetText(project, "PROJECT_INTERNAL_NAME"), rpcGetText(project, "RAYLIB_SRC_PATH")));
                 }
                 else LOG("WARNING: VS2022 project not found\n");
 
