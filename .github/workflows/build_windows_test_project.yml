@@ -77,10 +77,12 @@ jobs:
         7z a .\cool_project.zip .
       shell: cmd
 
+    # Package directory into zip and upload artifact
+    # Avoid including the previously packaged .zip 
     - name: Upload Test Project Artifacts
       uses: actions/upload-artifact@v7
       with:
         name: cool_project.zip
         path: |
-            ${{ env.PROJECT_REPO_NAME }}\test\cool_project\build
-            !./cool_project.zip
+            ${{ env.PROJECT_REPO_NAME }}/test/cool_project/build
+            !${{ env.PROJECT_REPO_NAME }}/test/cool_project/build/cool_project.zip
