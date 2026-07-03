@@ -73,10 +73,8 @@ jobs:
     - name: Generate Test Project Artifacts
       run: |
         cd ${{ env.PROJECT_REPO_NAME }}
-        dir
-        dir test\cool_project
-        dir test\cool_project\build
-        7z a .\cool_project.zip test\cool_project\build
+        cd test\cool_project\build
+        7z a .\cool_project.zip .
       shell: cmd
 
     - name: Upload Test Project Artifacts
