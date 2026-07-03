@@ -256,8 +256,11 @@ static rpcProjectConfig project = { 0 };        // Project config data
 static char inProjectFilePath[256] = { 0 };     // Project file path
 static char outProjectFilePath[256] = { 0 };    // Project output path (build path)
 
-static bool showMessageReset = false;           // Show message: reset
 static bool showMessageExit = false;            // Show message: exit (quit)
+
+static bool showRaylibMessagePanel = false;     // Show message panel: raylib src issue
+static int raylibError = 0;                     // raylib src error
+static bool showLoadRaylibDirectoryDialog = false; // Show dialog to get raylib src directory
 
 static bool saveProjectRequired = false;        // Flag to detect if project needs to be saved
 static bool runProjectRequired = false;         // Flag to request project run after building
@@ -330,6 +333,7 @@ static void ProcessCommandLine(int argc, char *argv[]);     // Process command l
 static void UpdateDrawFrame(void);                          // Update and draw one frame
 
 // Load/Save/Export data functions
+static int LoadProjectConfig(const char *inFileName);       // Load project config file .rpc into [project]
 static int BuildProject(rpcProjectConfig project, int platform, const char *buildPath); // Build project for target platform
 
 // Auxiliar functions
@@ -452,22 +456,8 @@ int main(int argc, char *argv[])
     //-------------------------------------------------------------------------------------
     if ((inProjectFilePath[0] != '\0') && (IsFileExtension(inProjectFilePath, ".rpc")))
     {
-        rpcProjectConfig prjsrc = rpcLoadProjectConfig(inProjectFilePath); // Load tool data from file
-        rpcUnloadProjectConfig(project);
-        project = rpcLoadProjectConfig("resources/project_template.rpc");
-
-        // Copy loaded project data over project template data, so
-        // all required build info is available if not provided on original file
-        for (int j = 0; j < prjsrc.entryCount; j++)
-        {
-            int result = rpcSetText(project, prjsrc.entries[j].key, prjsrc.entries[j].text);
-            if (result != -1) saveProjectRequired = true;
-        }
-
-        rpcUnloadProjectConfig(prjsrc);
-
-        if (saveProjectRequired) SetWindowTitle(TextFormat("%s v%s - %s*", toolName, toolVersion, GetFileName(inProjectFilePath)));
-        else SetWindowTitle(TextFormat("%s v%s - %s", toolName, toolVersion, GetFileName(inProjectFilePath)));
+        // Load project config file (.rpc) into [project]
+        LoadProjectConfig(inProjectFilePath);       
     }
     //-------------------------------------------------------------------------------------
 #endif
@@ -537,26 +527,9 @@ static void UpdateDrawFrame(void)
         else if (IsFileExtension(droppedFiles.paths[0], ".rpc"))
         {
             strcpy(inProjectFilePath, droppedFiles.paths[0]);
-            rpcUnloadProjectConfig(project);
-            project = rpcLoadProjectConfig(inProjectFilePath);
-            /*
-            rpcProjectConfig prjsrc = rpcLoadProjectConfig(inProjectFilePath); // Load tool data from file
-            rpcUnloadProjectConfig(project);
-            project = rpcLoadProjectConfig("resources/project_template.rpc");
 
-            // Copy loaded project data over project template data, so
-            // all required build info is available if not provided on original file
-            for (int j = 0; j < prjsrc.entryCount; j++)
-            {
-                int result = rpcSetText(project, prjsrc.entries[j].key, prjsrc.entries[j].text);
-                if (result != -1) saveProjectRequired = true;
-            }
-
-            rpcUnloadProjectConfig(prjsrc);
-            */
-
-            if (saveProjectRequired) SetWindowTitle(TextFormat("%s v%s - %s*", toolName, toolVersion, GetFileName(inProjectFilePath)));
-            else SetWindowTitle(TextFormat("%s v%s - %s", toolName, toolVersion, GetFileName(inProjectFilePath)));
+            // Load project config file (.rpc) into [project]
+            LoadProjectConfig(inProjectFilePath);
         }
         else if (IsPathDirectory(droppedFiles.paths[0])) // Dropped directory
         {
@@ -567,10 +540,8 @@ static void UpdateDrawFrame(void)
             {
                 strcpy(inProjectFilePath, files.paths[0]);
 
-                rpcUnloadProjectConfig(project);
-                project = rpcLoadProjectConfig(inProjectFilePath);
-
-                SetWindowTitle(TextFormat("%s v%s - %s", toolName, toolVersion, GetFileName(inProjectFilePath)));
+                // Load project config file (.rpc) into [project]
+                LoadProjectConfig(inProjectFilePath);
             }
             else LOG("WARNING: Dropped directory does not contain a raylib projeect config file (.rpc)\n");
 
@@ -647,8 +618,11 @@ static void UpdateDrawFrame(void)
                     {
                         memset(data.entries[i].text, 0, RINI_MAX_TEXT_SIZE);
                         strcpy(data.entries[i].text, project.entries[j].text);
+                        strcpy(data.entries[i].desc, project.entries[j].desc);
 
-                        // TODO: Check project.entries[j].type to set data.values[i].value and data.values[i].is_text
+                        if ((project.entries[j].type == RPC_TYPE_BOOL) ||
+                            (project.entries[j].type == RPC_TYPE_VALUE)) data.entries[i].is_text = false;
+                        else data.entries[i].is_text = true;
                     }
                 }
             }
@@ -665,6 +639,7 @@ static void UpdateDrawFrame(void)
         if (windowHelpState.windowActive) windowHelpState.windowActive = false;
         else if (windowAboutState.windowActive) windowAboutState.windowActive = false;
         else if (showIssueReportWindow) showIssueReportWindow = false;
+        else if (showRaylibMessagePanel) showRaylibMessagePanel = false;
     #if defined(PLATFORM_DESKTOP)
         else if (saveChangesRequired) showMessageExit = !showMessageExit;
         else closeWindow = true;
@@ -723,7 +698,7 @@ static void UpdateDrawFrame(void)
         showIssueReportWindow ||
         //windowUserState.windowActive ||
         showMessageExit ||
-        showMessageReset ||
+        showRaylibMessagePanel ||
         showLoadFileDialog ||
         showLoadDirectoryDialog ||
         showLoadProjectDialog ||
@@ -953,7 +928,7 @@ static void UpdateDrawFrame(void)
             showIssueReportWindow ||
             //windowUserState.windowActive ||
             showMessageExit ||
-            showMessageReset ||
+            showRaylibMessagePanel ||
             showLoadFileDialog ||
             showLoadDirectoryDialog ||
             showLoadProjectDialog ||
@@ -966,6 +941,90 @@ static void UpdateDrawFrame(void)
 
         // WARNING: Before drawing the windows, unlock raygui input
         GuiUnlock();
+
+        // GUI: Show info message panel
+        //----------------------------------------------------------------------------------------
+        if (showRaylibMessagePanel)
+        {
+            const char *infoTitle = NULL;
+            const char *infoMessage = NULL;
+            const char *infoButton01 = NULL;
+            const char *infoButton02 = NULL;
+
+            switch (raylibError)
+            {
+                case 1:     // raylib path not found
+                {
+                    infoTitle = "#220#WARNING: raylib src path not found!";
+                    infoMessage = "raylib src path provided by project config file (.rpc) not found.\nraylib library is required to build project.";
+                    infoButton01 = "#173#BROWSE PATH";
+                    infoButton02 = "#131#CONTINUE";
+                } break;
+                case 2:     // missing raylib.h
+                {
+                    infoTitle = "#220#WARNING: raylib.h header not found!";
+                    infoMessage = "raylib.h is required to build raylib project, it must be found on\nraylib src path or installed in system include path.";
+                    infoButton01 = "#173#BROWSE PATH";
+                    infoButton02 = "#131#CONTINUE";
+                } break;
+                case 3:     // missing libraylib.a
+                {
+                    infoTitle = "#220#WARNING: libraylib.a library not found!";
+                    infoMessage = "libraylib.a is required to build raylib project, it should be found on\nraylib src path, installed in system library path\nor re-built along project building.";
+                    infoButton01 = "#76#REBUILD ON BUILDING";
+                    infoButton02 = "#131#CONTINUE";
+                } break;
+                case 4:     // missing libraylib.web.a
+                {
+                    infoTitle = "#220#WARNING: libraylib.web.a library not found!";
+                    infoMessage = "libraylib.web.a is required to build raylib project for web platform,\nit should be found on raylib src path, installed in system library path\nor re-built along project building.";
+                    infoButton01 = "#76#REBUILD ON BUILDING";
+                    infoButton02 = "#131#CONTINUE";
+                } break;
+                default: break;
+            }
+
+            Rectangle panelRec = { -10, screenHeight/2 - 210, screenWidth + 20, 360 };
+            GuiPanel(panelRec, NULL);
+
+            int textSpacing = GuiGetStyle(DEFAULT, TEXT_SPACING);
+            GuiSetIconScale(3);
+            GuiSetStyle(DEFAULT, TEXT_SIZE, GuiGetFont().baseSize*3);
+            GuiSetStyle(DEFAULT, TEXT_SPACING, 0);
+            GuiSetStyle(LABEL, TEXT_ALIGNMENT, TEXT_ALIGN_CENTER);
+            GuiSetStyle(LABEL, TEXT_COLOR_NORMAL, GuiGetStyle(DEFAULT, TEXT_COLOR_PRESSED));
+            GuiLabel((Rectangle){ -10, panelRec.y + 32, screenWidth + 20, 30 }, infoTitle);
+            GuiSetStyle(LABEL, TEXT_COLOR_NORMAL, GuiGetStyle(DEFAULT, TEXT_COLOR_NORMAL));
+            GuiSetStyle(DEFAULT, TEXT_SIZE, GuiGetFont().baseSize*2);
+            GuiSetIconScale(2);
+            GuiSetStyle(DEFAULT, TEXT_LINE_SPACING, 10);
+            GuiLabel((Rectangle){ 0, panelRec.y + 90, screenWidth + 20, 160 }, infoMessage);
+            GuiSetStyle(DEFAULT, TEXT_LINE_SPACING, 8);
+
+            int btnWidth = (GetScreenWidth() - 160 - 12)/2;
+            if (GuiButton((Rectangle){ 80, panelRec.y + panelRec.height - 72, btnWidth, 48 }, infoButton01))
+            {
+                if ((raylibError == 1) || (raylibError == 2))
+                {
+                    showLoadRaylibDirectoryDialog = true;
+                    strcpy(inFilePath, GetWorkingDirectory());
+                }
+                else rpcSetValue(project, "RAYLIB_FLAG_BUILDING_REQUIRED", 1);
+
+                showRaylibMessagePanel = false;
+            }
+
+            if (GuiButton((Rectangle){ 80 + btnWidth + 12, panelRec.y + panelRec.height - 72, btnWidth, 48 }, infoButton02))
+            {
+                showRaylibMessagePanel = false;
+            }
+
+            GuiSetStyle(LABEL, TEXT_ALIGNMENT, TEXT_ALIGN_LEFT);
+            GuiSetStyle(DEFAULT, TEXT_SIZE, GuiGetFont().baseSize);
+            GuiSetStyle(DEFAULT, TEXT_SPACING, textSpacing);
+            GuiSetIconScale(1);
+        }
+        //----------------------------------------------------------------------------------------
 
         // GUI: Help Window
         //----------------------------------------------------------------------------------------
@@ -997,25 +1056,6 @@ static void UpdateDrawFrame(void)
         // GUI: User Window
         //----------------------------------------------------------------------------------------
         //GuiWindowUser(&windowUserState);
-        //----------------------------------------------------------------------------------------
-
-        // GUI: Show message: Reset
-        //----------------------------------------------------------------------------------------
-        if (showMessageReset)
-        {
-            int message = GuiMessageBox((Rectangle){ GetScreenWidth()/2 - 280/2, GetScreenHeight()/2 - 120/2, 280, 120 }, "#143#Reset project", "Do you want to create a new project?", "Yes;Cancel");
-            if (message >= 0)
-            {
-                if (message == 1)
-                {
-                    // TODO: Reset message box: Reset required variables
-
-                    SetWindowTitle(TextFormat("%s v%s - unnamed.rpc*\0", toolName, toolVersion));
-                }
-
-                showMessageReset = false;
-            }
-        }
         //----------------------------------------------------------------------------------------
 
         // GUI: Load File Dialog (and loading logic) -GENERIC-
@@ -1061,6 +1101,35 @@ static void UpdateDrawFrame(void)
         }
         //----------------------------------------------------------------------------------------
 
+        // GUI: Load raylib src Directory Dialog
+        //----------------------------------------------------------------------------------------
+        if (showLoadRaylibDirectoryDialog)
+        {
+#if defined(CUSTOM_MODAL_DIALOGS)
+            int result = GuiFileDialog(DIALOG_MESSAGE, "Load raylib src path...", inFilePath, "Ok", "Configure it manually in project properties...");
+#else
+            int result = GuiFileDialog(DIALOG_OPEN_DIRECTORY, "Load raylib src path...", inFilePath, "", "");
+#endif
+            if (result == 1)
+            {
+                raylibError = 0;
+
+                // Validate inFilePath to contain a valid raylib src path (header and libraries)
+                // NOTE: Shows warning message AGAIN if raylib is not found or not valid installation
+                if (!FileExists(TextFormat("%s/raylib.h", inFilePath))) raylibError = 2;
+                else if (!FileExists(TextFormat("%s/libraylib.a", inFilePath))) raylibError = 3;
+                else if (!FileExists(TextFormat("%s/libraylib.web.a", inFilePath))) raylibError = 4;
+
+                // Show message panel for raylib path issue,
+                // including path browser for raylib/src path (in case of not found)
+                if (raylibError > 0) showRaylibMessagePanel = true;
+                else rpcSetText(project, "RAYLIB_SRC_PATH", inFilePath); // Update required property with selected path
+            }
+
+            if (result >= 0) showLoadRaylibDirectoryDialog = false;
+        }
+        //----------------------------------------------------------------------------------------
+
         // GUI: Load Project Dialog (and loading logic)
         //----------------------------------------------------------------------------------------
         if (showLoadProjectDialog)
@@ -1072,26 +1141,8 @@ static void UpdateDrawFrame(void)
 #endif
             if (result == 1)
             {
-                rpcUnloadProjectConfig(project);
-                project = rpcLoadProjectConfig(inProjectFilePath);
-                /*
-                rpcProjectConfig prjsrc = rpcLoadProjectConfig(inProjectFilePath);    // Load tool data from file
-                rpcUnloadProjectConfig(project);
-                project = rpcLoadProjectConfig("resources/project_template.rpc");
-
-                // Copy loaded project data over project template data, so
-                // all required build info is available if not provided on original file
-                for (int j = 0; j < prjsrc.entryCount; j++)
-                {
-                    int result = rpcSetText(project, prjsrc.entries[j].key, prjsrc.entries[j].text);
-                    if (result != -1) saveProjectRequired = true;
-                }
-
-                rpcUnloadProjectConfig(prjsrc);
-                */
-
-                if (saveProjectRequired) SetWindowTitle(TextFormat("%s v%s - %s*", toolName, toolVersion, GetFileName(inProjectFilePath)));
-                else SetWindowTitle(TextFormat("%s v%s - %s", toolName, toolVersion, GetFileName(inProjectFilePath)));
+                // Load project config file (.rpc) into [project]
+                LoadProjectConfig(inProjectFilePath);
             }
 
             if (result >= 0) showLoadProjectDialog = false;
@@ -1129,8 +1180,11 @@ static void UpdateDrawFrame(void)
                         {
                             memset(data.entries[i].text, 0, RINI_MAX_TEXT_SIZE);
                             strcpy(data.entries[i].text, project.entries[j].text);
+                            strcpy(data.entries[i].desc, project.entries[j].desc);
 
-                            // TODO: Check project.entries[j].type to set data.values[i].value and data.values[i].is_text
+                            if ((project.entries[j].type == RPC_TYPE_BOOL) ||
+                                (project.entries[j].type == RPC_TYPE_VALUE)) data.entries[i].is_text = false;
+                            else data.entries[i].is_text = true;
                         }
                     }
                 }
@@ -1211,7 +1265,8 @@ static void UpdateDrawFrame(void)
         //----------------------------------------------------------------------------------------
         if (showMessageExit)
         {
-            int message = GuiMessageBox((Rectangle){ GetScreenWidth()/2 - 320/2, GetScreenHeight()/2 - 50, 320, 100 }, TextFormat("#159#Closing %s", toolName), "Do you really want to exit?", "Yes;No");
+            int message = GuiMessageBox((Rectangle){ GetScreenWidth()/2 - 320/2, GetScreenHeight()/2 - 50, 320, 100 }, 
+                TextFormat("#159#Closing %s", toolName), "Do you really want to exit?", "Yes;No");
 
             if ((message == 0) || (message == 2)) showMessageExit = false;
             else if (message == 1) closeWindow = true;
@@ -1450,8 +1505,77 @@ static void ProcessCommandLine(int argc, char *argv[])
 
 //--------------------------------------------------------------------------------------------
 // Load/Save/Export functions
-//--------------------------------------------------------------------------------------------
 // NOTE: rpconfig.h provides required functions, shared by [rpc] and [rpb] tools
+//--------------------------------------------------------------------------------------------
+
+// Load project config file .rpc into [project]
+// GLOBALS: project, showRaylibMessagePanel, raylibError
+static int LoadProjectConfig(const char *inFilePath)
+{
+    int result = -1;
+
+    // Load tool data from input project file (.rpc)
+    rpcProjectConfig tempProject = rpcLoadProjectConfig(inFilePath);
+
+    if (tempProject.entries > 0)
+    {
+        // Unload previous project
+        rpcUnloadProjectConfig(project);
+
+        // Load default projects template
+        // NOTE: Required in case the loaded .rpc does not contain all required
+        // parameters for building, updating the provided ones over a default template
+        project = rpcLoadProjectConfig("resources/project_template.rpc");
+
+        // Copy loaded project data over project template data, so
+        // all required build info is available if not provided on original file
+        for (int i = 0; i < tempProject.entryCount; i++)
+        {
+            // Update project with entries loaded (only if key is found)
+            // NOTE: Index refers to the updated property, not used
+            int index = rpcSetPropertyEntry(project, &tempProject.entries[i]);
+        }
+
+        SetWindowTitle(TextFormat("%s v%s - %s", toolName, toolVersion, GetFileName(inFilePath)));
+
+        result = 0;
+    }
+
+    rpcUnloadProjectConfig(tempProject);
+
+    // Validate raylib src path and required files for building,
+    // NOTE: Shows warning message if raylib is not found or not valid installation, allowing path browsing
+    //-------------------------------------------------------------------------------------------------
+    char *raylibPath = rpcGetText(project, "RAYLIB_SRC_PATH");
+    char raylibFullPath[256] = { 0 }; // raylib full path (in case of .rpc relative path provided)
+
+    // Get full raylib path from project property (.rpc path can be relative)
+    if (IsPathAbsolute(raylibPath)) strcpy(raylibFullPath, raylibPath);
+    else
+    {
+#if defined(_WIN32)
+        TextCopy(raylibFullPath, TextFormat("%s\\%s", GetDirectoryPath(inFilePath), raylibPath));
+#else
+        TextCopy(raylibFullPath, TextFormat("%s/%s", GetDirectoryPath(inFilePath), raylibPath));
+#endif
+    }
+
+    if (DirectoryExists(raylibFullPath))
+    {
+        // Validate header and library exists
+        if (!FileExists(TextFormat("%s/raylib.h", raylibPath))) raylibError = 2;
+        else if (!FileExists(TextFormat("%s/libraylib.a", raylibPath))) raylibError = 3;
+        else if (!FileExists(TextFormat("%s/libraylib.web.a", raylibPath))) raylibError = 4;
+    }
+    else raylibError = 1;
+
+    // Show message panel for raylib path issue,
+    // including path browser for raylib/src path (in case of not found)
+    if (raylibError > 0) showRaylibMessagePanel = true;
+    //-------------------------------------------------------------------------------------------------
+
+    return result;
+}
 
 // Build project for selected platform
 // WARNING: Build target platform support depends on host platform
@@ -1769,8 +1893,8 @@ static int BuildProject(rpcProjectConfig project, int platform, const char *buil
                 // Rebuild raylib library for current platform
                 ChangeDirectory(TextFormat("%s", rpcGetText(project, "RAYLIB_SRC_PATH")));
 
-                // TODO: Check if we have "raylib.h rcore.c rshapes.c...", RAYLIB_SRC_PATH could
-                // not be properly configured and be left in another folder with a Makefile (same rpb directory)
+                // TODO: Validate RAYLIB_SRC_PATH and required files for raylib building:
+                // Makefile, raylib.h, rcore.c, rshapes.c, rtextures.c, rtext.c, rmodels.c, raudio.c
                 //system("make PLATFORM=PLATFORM_WEB -B");
             }
 
