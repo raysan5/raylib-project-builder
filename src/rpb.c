@@ -334,7 +334,7 @@ static void UpdateDrawFrame(void);                          // Update and draw o
 
 // Load/Save/Export data functions
 static int LoadProjectConfig(const char *inFileName);       // Load project config file .rpc into [project]
-static int BuildProject(rpcProjectConfig project, int platform, const char *buildPath); // Build project for target platform
+static int BuildProject(rpcProjectConfig config, int platform, const char *buildPath); // Build project for target platform
 
 // Auxiliar functions
 static int DirectoryCopy(const char *srcPath, const char *dstPath); // Copy full directory with all content
@@ -1616,7 +1616,7 @@ static int LoadProjectConfig(const char *inFilePath)
 // Build project for selected platform
 // WARNING: Build target platform support depends on host platform
 // GLOBALS required: inProjectFilePath, runProjectRequired
-static int BuildProject(rpcProjectConfig project, int platform, const char *buildPath)
+static int BuildProject(rpcProjectConfig config, int platform, const char *buildPath)
 {
     int result = 0;
 
@@ -1648,13 +1648,13 @@ static int BuildProject(rpcProjectConfig project, int platform, const char *buil
     // Check build output path (relative or absolute)
     // WARNING: Using global inProjectFilePath to get output path
     char buildOutputPath[256] = { 0 }; // Project build path
-    if (buildPath[0] == '\0')
+    if ((buildPath == NULL) || (buildPath[0] == '\0'))
     {
         // Read default built path from .rpc file (relative to .rpc location)
 #if defined(_WIN32)
-        TextCopy(buildOutputPath, TextFormat("%s\\%s", GetDirectoryPath(inProjectFilePath), rpcGetText(project, "BUILD_OUTPUT_PATH")));
+        TextCopy(buildOutputPath, TextFormat("%s\\%s", GetDirectoryPath(inProjectFilePath), rpcGetText(config, "BUILD_OUTPUT_PATH")));
 #else
-        TextCopy(buildOutputPath, TextFormat("%s/%s", GetDirectoryPath(inProjectFilePath), rpcGetText(project, "BUILD_OUTPUT_PATH")));
+        TextCopy(buildOutputPath, TextFormat("%s/%s", GetDirectoryPath(inProjectFilePath), rpcGetText(config, "BUILD_OUTPUT_PATH")));
 #endif
     }
     else
@@ -1707,7 +1707,7 @@ static int BuildProject(rpcProjectConfig project, int platform, const char *buil
             //    - C/C++ compiler (Visual Studio Build Tools - MSBuild): https://visualstudio.microsoft.com/downloads/
             //
 
-            if (TextIsEqual(rpcGetText(project, "PLATFORM_WINDOWS_DEFAULT_TOOLCHAIN"), "MSBUILD"))
+            if (TextIsEqual(rpcGetText(config, "PLATFORM_WINDOWS_DEFAULT_TOOLCHAIN"), "MSBUILD"))
             {
                 // 1. Setup environment (...)
                 
@@ -1724,31 +1724,31 @@ static int BuildProject(rpcProjectConfig project, int platform, const char *buil
 
                     ChangeDirectory(TextFormat("%s/projects/VS2022", GetDirectoryPath(inProjectFilePath)));
                     system(TextFormat("msbuild.exe %s.sln /target:%s /property:Configuration=Release /property:Platform=x64 /property:RaylibSrcPath=\"%s\"",
-                        rpcGetText(project, "PROJECT_INTERNAL_NAME"), rpcGetText(project, "PROJECT_INTERNAL_NAME"), rpcGetText(project, "RAYLIB_SRC_PATH")));
+                        rpcGetText(config, "PROJECT_INTERNAL_NAME"), rpcGetText(config, "PROJECT_INTERNAL_NAME"), rpcGetText(config, "RAYLIB_SRC_PATH")));
                 }
                 else LOG("WARNING: VS2022 project not found\n");
 
                 // Copy VS2022 build result to build output directory
                 FileCopy(TextFormat("%s/projects/VS2022/build/%s/bin/x64/Release/%s.exe",
-                    GetDirectoryPath(inProjectFilePath), rpcGetText(project, "PROJECT_INTERNAL_NAME"), 
-                    rpcGetText(project, "PROJECT_INTERNAL_NAME")),
-                    TextFormat("%s/%s.exe", buildOutputPath, rpcGetText(project, "PROJECT_INTERNAL_NAME")));
+                    GetDirectoryPath(inProjectFilePath), rpcGetText(config, "PROJECT_INTERNAL_NAME"), 
+                    rpcGetText(config, "PROJECT_INTERNAL_NAME")),
+                    TextFormat("%s/%s.exe", buildOutputPath, rpcGetText(config, "PROJECT_INTERNAL_NAME")));
             }
             else
             {
                 // 1. Setup environment
                 PUTENV(TextFormat("PROJECT_BUILD_PATH=%s", buildOutputPath));
-                PUTENV(TextFormat("RAYLIB_DIR=%s", rpcGetText(project, "RAYLIB_SRC_PATH")));
-                PUTENV(TextFormat("PATH=%PATH%;%s", rpcGetText(project, "PLATFORM_WINDOWS_W64DEVKIT_PATH")));
+                PUTENV(TextFormat("RAYLIB_DIR=%s", rpcGetText(config, "RAYLIB_SRC_PATH")));
+                PUTENV(TextFormat("PATH=%PATH%;%s", rpcGetText(config, "PLATFORM_WINDOWS_W64DEVKIT_PATH")));
 
                 // 2. Build raylib library
-                if (rpcGetValue(project, "RAYLIB_FLAG_BUILDING_REQUIRED") == 1)
+                if (rpcGetValue(config, "RAYLIB_FLAG_BUILDING_REQUIRED") == 1)
                 {
-                    ChangeDirectory(TextFormat("%s", rpcGetText(project, "RAYLIB_SRC_PATH")));
+                    ChangeDirectory(TextFormat("%s", rpcGetText(config, "RAYLIB_SRC_PATH")));
                     system("make PLATFORM=PLATFORM_DESKTOP -B");
                 }
 
-                // 3. Build project (Makefile)
+                // 3. Build config (Makefile)
                 ChangeDirectory(TextFormat("%s", buildOutputPath));
                 system(TextFormat("make -C %s PLATFORM=PLATFORM_DESKTOP -B", TextFormat("%s/src", GetDirectoryPath(inProjectFilePath))));
             }
@@ -1756,17 +1756,17 @@ static int BuildProject(rpcProjectConfig project, int platform, const char *buil
             // 4. Process assets
             // NOTE: Copy to destination assets output, directory created automatically
             LOG("INFO: Copying assets to output directory: %s\n",
-                TextFormat("%s/%s", buildOutputPath, rpcGetText(project, "PROJECT_ASSETS_OUTPUT_PATH")));
-            DirectoryCopy(TextFormat("%s/%s", GetDirectoryPath(inProjectFilePath), rpcGetText(project, "PROJECT_ASSETS_PATH")),
-                TextFormat("%s/%s", buildOutputPath, rpcGetText(project, "PROJECT_ASSETS_OUTPUT_PATH")));
+                TextFormat("%s/%s", buildOutputPath, rpcGetText(config, "PROJECT_ASSETS_OUTPUT_PATH")));
+            DirectoryCopy(TextFormat("%s/%s", GetDirectoryPath(inProjectFilePath), rpcGetText(config, "PROJECT_ASSETS_PATH")),
+                TextFormat("%s/%s", buildOutputPath, rpcGetText(config, "PROJECT_ASSETS_OUTPUT_PATH")));
 
             // 5. Package project (...)
 
             // 6. Run project
             if (runProjectRequired)
             {
-                if (FileExists(TextFormat("%s/%s.exe", buildOutputPath, rpcGetText(project, "PROJECT_INTERNAL_NAME"))))
-                    system(TextFormat("%s/%s.exe", buildOutputPath, rpcGetText(project, "PROJECT_INTERNAL_NAME")));
+                if (FileExists(TextFormat("%s/%s.exe", buildOutputPath, rpcGetText(config, "PROJECT_INTERNAL_NAME"))))
+                    system(TextFormat("%s/%s.exe", buildOutputPath, rpcGetText(config, "PROJECT_INTERNAL_NAME")));
                 else LOG("WARNING: Project executable file not found\n");
             }
 #else
@@ -1788,10 +1788,10 @@ static int BuildProject(rpcProjectConfig project, int platform, const char *buil
             PUTENV("PATH=%PATH%;C:\\Windows\\System32"); // Make sure WSL is available in the path
 
             // 2. Build raylib library
-            if (rpcGetValue(project, "RAYLIB_FLAG_BUILDING_REQUIRED") == 1)
+            if (rpcGetValue(config, "RAYLIB_FLAG_BUILDING_REQUIRED") == 1)
             {
                 // Rebuild raylib library for current platform
-                ChangeDirectory(TextFormat("%s", rpcGetText(project, "RAYLIB_SRC_PATH")));
+                ChangeDirectory(TextFormat("%s", rpcGetText(config, "RAYLIB_SRC_PATH")));
                 system("wsl make PLATFORM=PLATFORM_DESKTOP -B");
             }
 
@@ -1802,20 +1802,20 @@ static int BuildProject(rpcProjectConfig project, int platform, const char *buil
             // 3. Build project (Makefile)
             ChangeDirectory(TextFormat("%s\\src", GetDirectoryPath(inProjectFilePath)));
             system(TextFormat("wsl make PLATFORM=PLATFORM_DESKTOP PROJECT_BUILD_PATH=%s RAYLIB_SRC_PATH=$(wslpath -a %s) -B",
-                PathToWSL(buildOutputPath), rpcGetText(project, "RAYLIB_SRC_PATH")));
+                PathToWSL(buildOutputPath), rpcGetText(config, "RAYLIB_SRC_PATH")));
 
             // 4. Process assets
             // Copy to destination assets output, directory created automatically
-            DirectoryCopy(TextFormat("%s/%s", PathToWSL(GetDirectoryPath(inProjectFilePath)), rpcGetText(project, "PROJECT_ASSETS_PATH")),
-                TextFormat("%s/%s", PathToWSL(buildOutputPath), rpcGetText(project, "PROJECT_ASSETS_OUTPUT_PATH")));
-            //system(TextFormat("wsl cp %s %s", rpcGetText(project, "PROJECT_INTERNAL_NAME"), PathToWSL(buildOutputPath)));
+            DirectoryCopy(TextFormat("%s/%s", PathToWSL(GetDirectoryPath(inProjectFilePath)), rpcGetText(config, "PROJECT_ASSETS_PATH")),
+                TextFormat("%s/%s", PathToWSL(buildOutputPath), rpcGetText(config, "PROJECT_ASSETS_OUTPUT_PATH")));
+            //system(TextFormat("wsl cp %s %s", rpcGetText(config, "PROJECT_INTERNAL_NAME"), PathToWSL(buildOutputPath)));
 
             // 5. Package project (...)
 
             // 6. Run project
             if (runProjectRequired)
             {
-                system(TextFormat("wsl %s/%s", PathToWSL(buildOutputPath), rpcGetText(project, "PROJECT_INTERNAL_NAME")));
+                system(TextFormat("wsl %s/%s", PathToWSL(buildOutputPath), rpcGetText(config, "PROJECT_INTERNAL_NAME")));
             }
 #elif defined(__linux__)
             // HOST PLATFORM: Linux
@@ -1939,15 +1939,15 @@ static int BuildProject(rpcProjectConfig project, int platform, const char *buil
             // 1. Setup environment
             PUTENV(TextFormat("PROJECT_BUILD_PATH=%s", buildOutputPath));
 #if defined(_WIN32)
-            PUTENV(TextFormat("RAYLIB_DIR=%s", rpcGetText(project, "RAYLIB_SRC_PATH")));
-            PUTENV(TextFormat("PATH=%PATH%;%s", rpcGetText(project, "PLATFORM_WINDOWS_W64DEVKIT_PATH")));
-            PUTENV(TextFormat("EMSDK_PATH=%s", rpcGetText(project, "PLATFORM_WEB_EMSDK_PATH")));
+            PUTENV(TextFormat("RAYLIB_DIR=%s", rpcGetText(config, "RAYLIB_SRC_PATH")));
+            PUTENV(TextFormat("PATH=%PATH%;%s", rpcGetText(config, "PLATFORM_WINDOWS_W64DEVKIT_PATH")));
+            PUTENV(TextFormat("EMSDK_PATH=%s", rpcGetText(config, "PLATFORM_WEB_EMSDK_PATH")));
 #endif
             // 2. Build raylib library
-            if (rpcGetValue(project, "RAYLIB_FLAG_BUILDING_REQUIRED") == 1)
+            if (rpcGetValue(config, "RAYLIB_FLAG_BUILDING_REQUIRED") == 1)
             {
                 // Rebuild raylib library for current platform
-                ChangeDirectory(TextFormat("%s", rpcGetText(project, "RAYLIB_SRC_PATH")));
+                ChangeDirectory(TextFormat("%s", rpcGetText(config, "RAYLIB_SRC_PATH")));
 
                 // TODO: Validate RAYLIB_SRC_PATH and required files for raylib building:
                 // Makefile, raylib.h, rcore.c, rshapes.c, rtextures.c, rtext.c, rmodels.c, raudio.c
@@ -1960,8 +1960,8 @@ static int BuildProject(rpcProjectConfig project, int platform, const char *buil
             // WARNING: Path to libraylib.web.a must be provided to be found
             ChangeDirectory(TextFormat("%s", buildOutputPath));
             system(TextFormat("make -C %s/src PLATFORM=PLATFORM_WEB RAYLIB_LIB_PATH=/home/ray/GitHub/raylib/src/ BUILD_WEB_SHELL=%s/%s BUILD_WEB_HEAP_SIZE=%iMB -B", GetDirectoryPath(inProjectFilePath),
-                GetDirectoryPath(inProjectFilePath), rpcGetText(project, "PLATFORM_WEB_SHELL_FILE"),
-                rpcGetValue(project, "PLATFORM_WEB_HEAP_MEMORY_SIZE")));
+                GetDirectoryPath(inProjectFilePath), rpcGetText(config, "PLATFORM_WEB_SHELL_FILE"),
+                rpcGetValue(config, "PLATFORM_WEB_HEAP_MEMORY_SIZE")));
 
             // 4. Process assets (...)
             // NOTE: Resources/assets already processed by emscripten building process
@@ -1971,16 +1971,16 @@ static int BuildProject(rpcProjectConfig project, int platform, const char *buil
             // 6. Run project
             if (runProjectRequired)
             {
-                if (FileExists(TextFormat("%s/%s.html", buildOutputPath, rpcGetText(project, "PROJECT_INTERNAL_NAME"))) &&
-                    FileExists(TextFormat("%s/%s.wasm", buildOutputPath, rpcGetText(project, "PROJECT_INTERNAL_NAME"))) &&
-                    FileExists(TextFormat("%s/%s.js", buildOutputPath, rpcGetText(project, "PROJECT_INTERNAL_NAME"))))
+                if (FileExists(TextFormat("%s/%s.html", buildOutputPath, rpcGetText(config, "PROJECT_INTERNAL_NAME"))) &&
+                    FileExists(TextFormat("%s/%s.wasm", buildOutputPath, rpcGetText(config, "PROJECT_INTERNAL_NAME"))) &&
+                    FileExists(TextFormat("%s/%s.js", buildOutputPath, rpcGetText(config, "PROJECT_INTERNAL_NAME"))))
                 {
                     // WARNING: Example download is asynchronous so reading fails on next step
                     // when looking for a file that could not have been downloaded yet
                     ChangeDirectory(TextFormat("%s", buildOutputPath));
                 #if defined(_WIN32)
                     system("start python -m http.server 8080"); // Init localhost just once
-                    system(TextFormat("start explorer \"http://localhost:8080/%s.html\"", rpcGetText(project, "PROJECT_INTERNAL_NAME")));
+                    system(TextFormat("start explorer \"http://localhost:8080/%s.html\"", rpcGetText(config, "PROJECT_INTERNAL_NAME")));
                 #elif defined(__linux__)
                     system("pwd");
                     // WARNING: python3 process is left running in background
@@ -2019,10 +2019,10 @@ static int BuildProject(rpcProjectConfig project, int platform, const char *buil
 
 #endif
             // 2. Build raylib library
-            if (rpcGetValue(project, "RAYLIB_FLAG_BUILDING_REQUIRED") == 1)
+            if (rpcGetValue(config, "RAYLIB_FLAG_BUILDING_REQUIRED") == 1)
             {
                 // Rebuild raylib library for current platform
-                ChangeDirectory(TextFormat("%s", rpcGetText(project, "RAYLIB_SRC_PATH")));
+                ChangeDirectory(TextFormat("%s", rpcGetText(config, "RAYLIB_SRC_PATH")));
                 system("make PLATFORM=PLATFORM_ANDROID -B");
             }
 
@@ -2032,8 +2032,8 @@ static int BuildProject(rpcProjectConfig project, int platform, const char *buil
 
             // 4. Process assets
             // NOTE: Copy to destination assets output, directory created automatically
-            DirectoryCopy(TextFormat("%s/%s", GetDirectoryPath(inProjectFilePath), rpcGetText(project, "PROJECT_ASSETS_PATH")),
-                TextFormat("%s/%s", buildOutputPath, rpcGetText(project, "PROJECT_ASSETS_OUTPUT_PATH")));
+            DirectoryCopy(TextFormat("%s/%s", GetDirectoryPath(inProjectFilePath), rpcGetText(config, "PROJECT_ASSETS_PATH")),
+                TextFormat("%s/%s", buildOutputPath, rpcGetText(config, "PROJECT_ASSETS_OUTPUT_PATH")));
 
             // 5. Package project (...)
 

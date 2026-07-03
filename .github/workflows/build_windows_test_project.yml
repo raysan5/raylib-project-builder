@@ -65,7 +65,7 @@ jobs:
     - name: Build test Project
       run: |
         cd ${{ env.PROJECT_REPO_NAME }}/test/cool_project
-        ../../projects/VS2022/build/rpb/bin/x64/Release/${{ env.PROJECT_NAME }}.exe -i cool_project.rpc -o cool_project --build Windows -p RAYLIB_SRC_PATH=${{ env.PROJECT_REPO_NAME }}/../raylib/src -p PLATFORM_WINDOWS_DEFAULT_TOOLCHAIN=MSBUILD
+        ../../projects/VS2022/build/rpb/bin/x64/Release/${{ env.PROJECT_NAME }}.exe -i cool_project.rpc --build Windows -p RAYLIB_SRC_PATH=${{ env.PROJECT_REPO_NAME }}/../../raylib/src -p PLATFORM_WINDOWS_DEFAULT_TOOLCHAIN=MSBUILD
         cd ../..
 
     - name: Generate Test Project Artifacts
