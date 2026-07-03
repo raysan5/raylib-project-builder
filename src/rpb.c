@@ -1355,7 +1355,7 @@ static void ShowCommandLineInfo(void)
 #elif defined(__EMSCRIPTEN__)
     printf("                                         - HOST: Web - Platforms: -\n");
 #endif
-    printf("    -r, --raylib <path>             : Redefine raylib src directory path\n");
+    printf("    -p, --prop PROPERTY=value       : Redefine specific project property for the build\n");
 
     //printf("    -p, --package <platform>        : Package project for target platform\n");
     //printf("    -d, --deploy <store>            : Deploy package to target store\n");
@@ -1378,10 +1378,12 @@ static void ShowCommandLineInfo(void)
 static void ProcessCommandLine(int argc, char *argv[])
 {
     // CLI required variables
-    bool showUsageInfo = false;     // Toggle command line usage info
-    int buildPlatform = -1;         // Target build platform
-    char buildPath[256] = { 0 };    // Build output path
-    char raylibPath[256] = { 0 };   // raylib path
+    bool showUsageInfo = false;         // Toggle command line usage info
+    int buildPlatform = -1;             // Target build platform
+    char buildPath[256] = { 0 };        // Build output path
+    char raylibPath[256] = { 0 };       // raylib path
+
+    rpcProjectConfig config = { 0 };    // Project config data
 
 #if defined(COMMAND_LINE_ONLY)
     if (argc == 1) showUsageInfo = true;
@@ -1401,7 +1403,21 @@ static void ProcessCommandLine(int argc, char *argv[])
             {
                 if (IsFileExtension(argv[i + 1], ".rpc"))
                 {
-                    strcpy(inFileName, argv[i + 1]); // Read input filename
+                    // Read provided input .rpc file
+                    // NOTE: Checking absolute path and also relative path to working directory
+                    char inputFilePath[256] = { 0 };
+
+                    // Validate input project file
+                    if (IsPathAbsolute(argv[i + 1]) && FileExists(argv[i + 1])) strcpy(inputFilePath, argv[i + 1]);
+                    else if (FileExists(TextFormat("%s/%s", GetWorkingDirectory(), argv[i + 1]))) strcpy(inputFilePath, TextFormat("%s/%s", GetWorkingDirectory(), inFileName));
+                    else printf("WARNING: [%s] Input project file can not be found\n", argv[i + 1]);
+
+                    if (inputFilePath[0] != '\0')
+                    {
+                        // Load input project file
+                        // NOTE: It should be loaded here to allow properties overwrite by command line
+                        config = rpcLoadProjectConfig(inputFilePath);
+                    }
                 }
                 else printf("WARNING: Input file extension not recognized\n");
 
@@ -1436,12 +1452,23 @@ static void ProcessCommandLine(int argc, char *argv[])
             }
             else printf("WARNING: Format parameters provided not valid\n");
         }
-        else if ((strcmp(argv[i], "-r") == 0) || (strcmp(argv[i], "--raylib") == 0))
+        else if ((strcmp(argv[i], "-p") == 0) || (strcmp(argv[i], "--prop") == 0))
         {
             // Check for valid upcoming argumment
             if (((i + 1) < argc) && (argv[i + 1][0] != '-'))
             {
-                strcpy(raylibPath, argv[i + 1]); // Read raylib path (needs validation)
+                int keyValueCount = 0;
+                char **keyValue = TextSplit(argv[i + 1], '=', &keyValueCount);
+
+                if (config.entryCount == 0) printf("WARNING: Project config not loaded, propeerty can't be updated\n");
+                else if (keyValueCount == 2)
+                {
+                    // Update required property on loaded project (if key found)
+                    int updated = rpcSetText(config, keyValue[0], keyValue[1]);
+                    if (updated == -1) printf("WARNING: Property to update not found in provided project config: %s\n", keyValue[0]);
+                    else printf("INFO: Project property %s updated: %s\n", keyValue[0], keyValue[1]);
+                }
+                else printf("WARNING: Provided property not valid, make sure to follow 'PROPERTY=value' format\n");
 
                 i++;
             }
@@ -1449,76 +1476,57 @@ static void ProcessCommandLine(int argc, char *argv[])
         }
     }
 
-    // Process input file if provided
-    if (inFileName[0] != '\0')
+    // Build project
+    if (config.entryCount > 0)
     {
         printf("INFO: Working directory: %s\n", GetWorkingDirectory());
         char inputFilePath[256] = { 0 };
 
-        // Validate input project file
-        if (IsPathAbsolute(inFileName) && FileExists(inFileName)) strcpy(inputFilePath, inFileName);
-        else if (FileExists(TextFormat("%s/%s", GetWorkingDirectory(), inFileName))) strcpy(inputFilePath, TextFormat("%s/%s", GetWorkingDirectory(), inFileName));
-        else printf("WARNING: [%s] Input project file can not be found\n", inFileName);
+        printf("INFO: [%s] Loaded input project: %s\n", GetFileName(inputFilePath), rpcGetText(config, "PROJECT_INTERNAL_NAME"));
 
-        if (inputFilePath[0] != '\0')
-        {
-            // Load input project file
-            rpcProjectConfig config = rpcLoadProjectConfig(inputFilePath);
+        printf("  > Project repo name:       %s\n", rpcGetText(config, "PROJECT_REPO_NAME"));
+        printf("  > Project internal name:   %s\n", rpcGetText(config, "PROJECT_INTERNAL_NAME"));
+        printf("  > Project commercial name: %s\n", rpcGetText(config, "PROJECT_COMMERCIAL_NAME"));
+        printf("  > Project short name:      %s\n", rpcGetText(config, "PROJECT_SHORT_NAME"));
+        printf("  > Project version:         %s\n", rpcGetText(config, "PROJECT_VERSION"));
+        printf("  > Project description:     %s\n", rpcGetText(config, "PROJECT_DESCRIPTION"));
+        printf("  > Project publisher name:  %s\n", rpcGetText(config, "PROJECT_PUBLISHER_NAME"));
+        printf("  > Project developer name:  %s\n", rpcGetText(config, "PROJECT_DEVELOPER_NAME"));
+        printf("  > Project developer url:   %s\n\n", rpcGetText(config, "PROJECT_DEVELOPER_URL"));
 
-            printf("INFO: [%s] Loaded input project: %s\n", GetFileName(inputFilePath), rpcGetText(config, "PROJECT_INTERNAL_NAME"));
+        // NOTE: Build output path validation done inside BuildProject()
 
-            printf("  > Project repo name:       %s\n", rpcGetText(config, "PROJECT_REPO_NAME"));
-            printf("  > Project internal name:   %s\n", rpcGetText(config, "PROJECT_INTERNAL_NAME"));
-            printf("  > Project commercial name: %s\n", rpcGetText(config, "PROJECT_COMMERCIAL_NAME"));
-            printf("  > Project short name:      %s\n", rpcGetText(config, "PROJECT_SHORT_NAME"));
-            printf("  > Project version:         %s\n", rpcGetText(config, "PROJECT_VERSION"));
-            printf("  > Project description:     %s\n", rpcGetText(config, "PROJECT_DESCRIPTION"));
-            printf("  > Project publisher name:  %s\n", rpcGetText(config, "PROJECT_PUBLISHER_NAME"));
-            printf("  > Project developer name:  %s\n", rpcGetText(config, "PROJECT_DEVELOPER_NAME"));
-            printf("  > Project developer url:   %s\n\n", rpcGetText(config, "PROJECT_DEVELOPER_URL"));
-
-            // NOTE: Build output path validation done inside BuildProject()
-
-            // Validate platform selected for current host
+        // Validate platform selected for current host
 #if defined(_WIN32)
-            if ((buildPlatform != 0) && (buildPlatform != 1) && (buildPlatform != 3))
-            {
-                buildPlatform = 0; // Revert to Windows
-                printf("WARNING: Requested platform not supported on current host platforms (HOST: Windows)\n");
-                printf("WARNING: Revert to default platform: %s\n", platformNames[buildPlatform]);
-            }
-#elif defined(__linux__)
-            if ((buildPlatform != 1) && (buildPlatform != 3))
-            {
-                buildPlatform = 1; // Revert to Linux
-                printf("WARNING: Requested platform not supported on current host platforms (HOST: Linux)\n");
-                printf("WARNING: Revert to default platform: %s\n", platformNames[buildPlatform]);
-            }
-#elif defined(__APPLE__)
-            if ((buildPlatform != 2) && (buildPlatform != 3))
-            {
-                buildPlatform = 2; // Revert to macOS
-                printf("WARNING: Requested platform not supported on current host platforms (HOST: macOS)\n");
-                printf("WARNING: Revert to default platform: %s\n", platformNames[buildPlatform]);
-            }
-#endif
-            printf("INFO: Build output platform:   %s\n", platformNames[buildPlatform]);
-
-            if (raylibPath[0] != '\0')
-            {
-                if (DirectoryExists(raylibPath))
-                {
-                    rpcSetText(config, "RAYLIB_SRC_PATH", raylibPath); // Set raylib path to provided one
-                    rpcSetValue(config, "RAYLIB_FLAG_BUILDING_REQUIRED", 1); // Require raylib rebuild
-                }
-                else printf("WARNING: raylib path provided does not exist: %s\n", raylibPath);
-            }
-
-            // Build provided project to output build directory for selected platform
-            int result = BuildProject(config, buildPlatform, buildPath);
-
-            if (result == 0) printf("Build process finished successfully!\n");
+        if ((buildPlatform != 0) && (buildPlatform != 1) && (buildPlatform != 3))
+        {
+            buildPlatform = 0; // Revert to Windows
+            printf("WARNING: Requested platform not supported on current host platforms (HOST: Windows)\n");
+            printf("WARNING: Revert to default platform: %s\n", platformNames[buildPlatform]);
         }
+#elif defined(__linux__)
+        if ((buildPlatform != 1) && (buildPlatform != 3))
+        {
+            buildPlatform = 1; // Revert to Linux
+            printf("WARNING: Requested platform not supported on current host platforms (HOST: Linux)\n");
+            printf("WARNING: Revert to default platform: %s\n", platformNames[buildPlatform]);
+        }
+#elif defined(__APPLE__)
+        if ((buildPlatform != 2) && (buildPlatform != 3))
+        {
+            buildPlatform = 2; // Revert to macOS
+            printf("WARNING: Requested platform not supported on current host platforms (HOST: macOS)\n");
+            printf("WARNING: Revert to default platform: %s\n", platformNames[buildPlatform]);
+        }
+#endif
+        printf("INFO: Build output platform:   %s\n", platformNames[buildPlatform]);
+
+        printf("INFO: raylib source path: %s\n", rpcGetText(config, "RAYLIB_SRC_PATH"));
+
+        // Build provided project to output build directory for selected platform
+        int result = BuildProject(config, buildPlatform, buildPath);
+
+        if (result == 0) printf("Build process finished successfully!\n");
     }
 
     if (showUsageInfo) ShowCommandLineInfo();
