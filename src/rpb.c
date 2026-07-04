@@ -1446,11 +1446,11 @@ static void ProcessCommandLine(int argc, char *argv[])
             // Check for valid argument and valid parameters
             if (((i + 1) < argc) && (argv[i + 1][0] != '-'))
             {
-                if (TextIsEqual(argv[i + 1], "Windows")) buildPlatform = 0;
-                else if (TextIsEqual(argv[i + 1], "Linux")) buildPlatform = 1;
-                else if (TextIsEqual(argv[i + 1], "macOS")) buildPlatform = 2;
-                else if (TextIsEqual(argv[i + 1], "Wasm")) buildPlatform = 3;
-                else if (TextIsEqual(argv[i + 1], "Android")) buildPlatform = 4;
+                if (TextIsEqual(TextToLower(argv[i + 1]), "windows")) buildPlatform = 0;
+                else if (TextIsEqual(TextToLower(argv[i + 1]), "linux")) buildPlatform = 1;
+                else if (TextIsEqual(TextToLower(argv[i + 1]), "macos")) buildPlatform = 2;
+                else if (TextIsEqual(TextToLower(argv[i + 1]), "wasm") || TextIsEqual(TextToLower(argv[i + 1]), "web")) buildPlatform = 3;
+                else if (TextIsEqual(TextToLower(argv[i + 1]), "android")) buildPlatform = 4;
                 else printf("WARNING: Requested build platform not supported (%s)\n", argv[i + 1]);
 
                 // WARNING: Requested build platform should be validated against host platform
