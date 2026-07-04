@@ -25,7 +25,6 @@ jobs:
       PROJECT_RESOURCES_SRC_PATH: src/resources
       PROJECT_RESOURCES_DST_PATH: resources
       PROJECT_CUSTOM_FLAGS: ""
-      RAYLIB_CONFIG_FLAGS: ""
 
     steps:
     - name: Checkout this repo
