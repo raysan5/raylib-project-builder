@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     paths:
-      - '.github/workflows/build_linux.yml'
+      - '.github/workflows/build_linux_test_project.yml'
     
 permissions:
   contents: read

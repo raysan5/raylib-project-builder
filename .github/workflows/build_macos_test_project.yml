@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     paths:
-      - '.github/workflows/build_macos.yml'
+      - '.github/workflows/build_macos_test_project.yml'
 
 permissions:
   contents: read
