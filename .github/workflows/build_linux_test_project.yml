@@ -72,8 +72,8 @@ jobs:
         cd ${{ env.PROJECT_REPO_NAME }}/test/cool_project
         ls
         ls ../../src
-        ls ${{ env.PROJECT_RELEASE_PATH }}
-        ${{ env.PROJECT_RELEASE_PATH }}/${{ env.PROJECT_NAME }}.exe -i cool_project.rpc --build Linux -p RAYLIB_SRC_PATH=../../raylib/src
+        ls ../../${{ env.PROJECT_RELEASE_PATH }}
+        ../../${{ env.PROJECT_RELEASE_PATH }}/${{ env.PROJECT_NAME }}.exe -i cool_project.rpc --build Linux -p RAYLIB_SRC_PATH=../../raylib/src
         cd ..
 
     - name: Generate Test Project Artifacts
