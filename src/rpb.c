@@ -1471,9 +1471,11 @@ static void ProcessCommandLine(int argc, char *argv[])
                     // Update required property on loaded project (if key found)
                     // TODO: Properly set proterty as text or value, instead of current hack,
                     // key info should be parsed and automatically determine the type of property (and parameters)
-                    int updated = rpcSetText(config, keyValue[0], keyValue[1]);
+                    int updated = -1;
                     if ((keyValue[1][0] == '0') || (keyValue[1][0] == '1'))
-                        rpcSetValue(config, keyValue[0], TextToInteger(keyValue[1]));
+                        updated = rpcSetValue(config, keyValue[0], TextToInteger(keyValue[1]));
+                    else updated = rpcSetText(config, keyValue[0], keyValue[1]);
+
                     if (updated == -1) printf("WARNING: Property to update not found in provided project config: %s\n", keyValue[0]);
                     else printf("INFO: Project property updated: %s=%s\n", keyValue[0], keyValue[1]);
                 }
@@ -1746,6 +1748,8 @@ static int BuildProject(rpcProjectConfig config, int platform, const char *build
                 // 2. Build raylib library
                 if (rpcGetValue(config, "RAYLIB_FLAG_BUILDING_REQUIRED") == 1)
                 {
+                    LOG("INFO: Rebuilding raylib library...\n");
+
                     ChangeDirectory(TextFormat("%s", rpcGetText(config, "RAYLIB_SRC_PATH")));
                     system("make PLATFORM=PLATFORM_DESKTOP -B");
                 }
@@ -1792,6 +1796,8 @@ static int BuildProject(rpcProjectConfig config, int platform, const char *build
             // 2. Build raylib library
             if (rpcGetValue(config, "RAYLIB_FLAG_BUILDING_REQUIRED") == 1)
             {
+                LOG("INFO: Rebuilding raylib library...\n");
+
                 // Rebuild raylib library for current platform
                 ChangeDirectory(TextFormat("%s", rpcGetText(config, "RAYLIB_SRC_PATH")));
                 system("wsl make PLATFORM=PLATFORM_DESKTOP -B");
@@ -1833,6 +1839,8 @@ static int BuildProject(rpcProjectConfig config, int platform, const char *build
             // 2. Build raylib library
             if (rpcGetValue(config, "RAYLIB_FLAG_BUILDING_REQUIRED") == 1)
             {
+                LOG("INFO: Rebuilding raylib library...\n");
+
                 ChangeDirectory(TextFormat("%s", rpcGetText(config, "RAYLIB_SRC_PATH")));
                 system("make PLATFORM=PLATFORM_DESKTOP -B");
             }
@@ -1901,6 +1909,8 @@ static int BuildProject(rpcProjectConfig config, int platform, const char *build
             // 2. Build raylib library
             if (rpcGetValue(config, "RAYLIB_FLAG_BUILDING_REQUIRED") == 1)
             {
+                LOG("INFO: Rebuilding raylib library...\n");
+
                 // Rebuild raylib library for current platform
                 ChangeDirectory(TextFormat("%s", rpcGetText(config, "RAYLIB_SRC_PATH")));
                 system("make PLATFORM=PLATFORM_DESKTOP -B");
@@ -1949,12 +1959,14 @@ static int BuildProject(rpcProjectConfig config, int platform, const char *build
             // 2. Build raylib library
             if (rpcGetValue(config, "RAYLIB_FLAG_BUILDING_REQUIRED") == 1)
             {
+                LOG("INFO: Rebuilding raylib library...\n");
+
                 // Rebuild raylib library for current platform
                 ChangeDirectory(TextFormat("%s", rpcGetText(config, "RAYLIB_SRC_PATH")));
 
                 // TODO: Validate RAYLIB_SRC_PATH and required files for raylib building:
                 // Makefile, raylib.h, rcore.c, rshapes.c, rtextures.c, rtext.c, rmodels.c, raudio.c
-                //system("make PLATFORM=PLATFORM_WEB -B");
+                system("make PLATFORM=PLATFORM_WEB -B");
             }
 
             // 3. Build project (Makefile)
@@ -2024,6 +2036,8 @@ static int BuildProject(rpcProjectConfig config, int platform, const char *build
             // 2. Build raylib library
             if (rpcGetValue(config, "RAYLIB_FLAG_BUILDING_REQUIRED") == 1)
             {
+                LOG("INFO: Rebuilding raylib library...\n");
+
                 // Rebuild raylib library for current platform
                 ChangeDirectory(TextFormat("%s", rpcGetText(config, "RAYLIB_SRC_PATH")));
                 system("make PLATFORM=PLATFORM_ANDROID -B");
