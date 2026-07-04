@@ -25,7 +25,7 @@ jobs:
       PROJECT_RESOURCES_SRC_PATH: src/resources
       PROJECT_RESOURCES_DST_PATH: resources
       PROJECT_CUSTOM_FLAGS: ""
-      RAYLIB_CONFIG_FLAGS: "'-DSUPPORT_MODULE_RSHAPES -DSUPPORT_MODULE_RTEXTURES -DSUPPORT_MODULE_RTEXT -DSUPPORT_COMPRESSION_API -DSUPPORT_SCREEN_CAPTURE -DSUPPORT_IMAGE_EXPORT -DSUPPORT_FILEFORMAT_PNG -DSUPPORT_FILEFORMAT_QOI -DSUPPORT_QUADS_DRAW_MODE -DSUPPORT_TRACELOG'"
+      RAYLIB_CONFIG_FLAGS: ""
 
     steps:
     - name: Checkout this repo
@@ -58,7 +58,7 @@ jobs:
       run: |
         cd raylib/src
         gcc --version
-        make PLATFORM=PLATFORM_DESKTOP BUILD_MODE=RELEASE RAYLIB_LIBTYPE=STATIC RAYLIB_CONFIG_FLAGS=${{ env.RAYLIB_CONFIG_FLAGS }} RAYLIB_RELEASE_PATH=. -B
+        make PLATFORM=PLATFORM_DESKTOP BUILD_MODE=RELEASE RAYLIB_LIBTYPE=STATIC RAYLIB_RELEASE_PATH=. -B
 
     - name: Build Product
       run: |
@@ -71,7 +71,7 @@ jobs:
       run: |
         cd ${{ env.PROJECT_REPO_NAME }}/test/cool_project
         ls ../../src
-        ../../src/${{ env.PROJECT_NAME }} -i cool_project.rpc --build Linux -p RAYLIB_SRC_PATH=../../../../raylib/src -p RAYLIB_FLAG_BUILDING_REQUIRED=1
+        ../../src/${{ env.PROJECT_NAME }} -i cool_project.rpc --build Linux -p RAYLIB_SRC_PATH=../../../../raylib/src
         cd ..
 
     - name: Generate Test Project Artifacts
