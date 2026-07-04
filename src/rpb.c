@@ -1945,7 +1945,7 @@ static int BuildProject(rpcProjectConfig config, int platform, const char *build
 
             // 3. Build project (Makefile)
             ChangeDirectory(TextFormat("%s/src", GetDirectoryPath(inProjectFilePath)));
-            system(TextFormat("make PROJECT_NAME=%s PLATFORM=PLATFORM_DESKTOP PROJECT_BUILD_PATH=%s%s.app/Contents/MacOS RAYLIB_SRC_PATH=%s -B",
+            system(TextFormat("make PROJECT_NAME=%s PLATFORM=PLATFORM_DESKTOP PROJECT_BUILD_PATH=%s/%s.app/Contents/MacOS RAYLIB_SRC_PATH=%s -B",
                 rpcGetText(config, "PROJECT_INTERNAL_NAME"), 
                 buildOutputPath, rpcGetText(config, "PROJECT_INTERNAL_NAME"), 
                 rpcGetText(config, "RAYLIB_SRC_PATH")));
