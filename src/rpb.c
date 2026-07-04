@@ -1531,6 +1531,7 @@ static void ProcessCommandLine(int argc, char *argv[])
 #endif
         printf("INFO: Build output platform: %s\n", platformNames[buildPlatform]);
 
+        /*
         // Validate raylib source path, make sure to use an absolute path
         //------------------------------------------------------------------------------------------
         char *raylibPath = rpcGetText(config, "RAYLIB_SRC_PATH");
@@ -1549,8 +1550,9 @@ static void ProcessCommandLine(int argc, char *argv[])
 
         rpcSetText(config, "RAYLIB_SRC_PATH", raylibFullPath);
         //------------------------------------------------------------------------------------------
+        */
 
-        printf("INFO: raylib source full path: %s\n", raylibFullPath);
+        printf("INFO: raylib source full path: %s/%s\n", GetWorkingDirectory(), rpcGetText(config, "RAYLIB_SRC_PATH"));
 
         // Build provided project to output build directory for selected platform
         int result = BuildProject(config, buildPlatform, buildPath);
@@ -1818,7 +1820,7 @@ static int BuildProject(rpcProjectConfig config, int platform, const char *build
                 LOG("INFO: Rebuilding raylib library...\n");
 
                 // Rebuild raylib library for current platform
-                ChangeDirectory(TextFormat("%s", rpcGetText(config, "RAYLIB_SRC_PATH")));
+                ChangeDirectory(rpcGetText(config, "RAYLIB_SRC_PATH"));
                 system("wsl make PLATFORM=PLATFORM_DESKTOP -B");
             }
 
@@ -1854,15 +1856,16 @@ static int BuildProject(rpcProjectConfig config, int platform, const char *build
 
             // 1. Setup environment
             PUTENV(TextFormat("PROJECT_BUILD_PATH=%s", buildOutputPath));
+            ChangeDirectory(TextFormat("%s", buildOutputPath));
 
             // 2. Build raylib library
             if (rpcGetValue(config, "RAYLIB_FLAG_BUILDING_REQUIRED") == 1)
             {
                 LOG("INFO: Rebuilding raylib library...\n");
 
-                ChangeDirectory(TextFormat("%s", rpcGetText(config, "RAYLIB_SRC_PATH")));
-
-                LOG("INFO: Changing to directory: %s\n", TextFormat("%s", rpcGetText(config, "RAYLIB_SRC_PATH")));
+                ChangeDirectory(rpcGetText(config, "RAYLIB_SRC_PATH"));
+                //if (IsPathAbsolute(rpcGetText(config, "RAYLIB_SRC_PATH"))) ChangeDirectory(rpcGetText(config, "RAYLIB_SRC_PATH"));
+                //else ChangeDirectory(TextFormat("%s/%s", buildOutputPath, rpcGetText(config, "RAYLIB_SRC_PATH")));
 
                 system("make PLATFORM=PLATFORM_DESKTOP -B");
             }
