@@ -479,7 +479,7 @@ int rpcSetText(rpcProjectConfig config, const char *key, const char *text)
             !TextIsEqual(config.entries[i].text, text))
         {
             memset(config.entries[i].text, 0, 256);
-            strcpy(config.entries[i].text, text);
+            strncpy(config.entries[i].text, text, 255);
             result = i;
             break;
         }
