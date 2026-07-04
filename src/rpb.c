@@ -1953,11 +1953,11 @@ static int BuildProject(rpcProjectConfig config, int platform, const char *build
             // 4. Process assets
             // NOTE: Copy to destination assets output, directory created automatically
             DirectoryCopy(TextFormat("%s/%s", GetDirectoryPath(inProjectFilePath), rpcGetText(config, "PROJECT_ASSETS_PATH")),
-                TextFormat("%s%s.app/Contents/Resources", buildOutputPath, rpcGetText(config, "PROJECT_INTERNAL_NAME")));
+                TextFormat("%s/%s.app/Contents/Resources", buildOutputPath, rpcGetText(config, "PROJECT_INTERNAL_NAME")));
 
             // 5. Package project (...)
             FileCopy(TextFormat("%s/src/Info.plist", GetDirectoryPath(inProjectFilePath)),
-                TextFormat("%s%s.app/Contents/Info.plist", buildOutputPath, rpcGetText(config, "PROJECT_INTERNAL_NAME")));
+                TextFormat("%s/%s.app/Contents/Info.plist", buildOutputPath, rpcGetText(config, "PROJECT_INTERNAL_NAME")));
 
             // 6. Run project
             if (runProjectRequired)
