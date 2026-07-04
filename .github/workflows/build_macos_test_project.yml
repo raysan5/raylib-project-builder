@@ -25,8 +25,7 @@ jobs:
       PROJECT_RESOURCES_SRC_PATH: src/resources
       PROJECT_RESOURCES_DST_PATH: resources
       PROJECT_CUSTOM_FLAGS: ""
-      RAYLIB_CONFIG_FLAGS: "-DSUPPORT_MODULE_RSHAPES -DSUPPORT_MODULE_RTEXTURES -DSUPPORT_MODULE_RTEXT -DSUPPORT_COMPRESSION_API -DSUPPORT_SCREEN_CAPTURE -DSUPPORT_IMAGE_EXPORT -DSUPPORT_FILEFORMAT_PNG -DSUPPORT_FILEFORMAT_QOI -DSUPPORT_QUADS_DRAW_MODE -DSUPPORT_TRACELOG"
-    
+
     steps:
     - name: Checkout this repo
       uses: actions/checkout@master
@@ -113,14 +112,13 @@ jobs:
     - name: Build test Project
       run: |
         cd ${{ env.PROJECT_REPO_NAME }}/test/cool_project
-        ls ../../src
-        ../../src/${{ env.PROJECT_NAME }} -i cool_project.rpc --build macOS -p RAYLIB_SRC_PATH=../../../../raylib/src -p RAYLIB_FLAG_BUILDING_REQUIRED=1
-        cd ..
+        ../../src/${{ env.PROJECT_NAME }} -i cool_project.rpc --build macOS -p RAYLIB_SRC_PATH=../../../../raylib/src
 
     # NOTE: [rpb] already generates a valid app bundle on build directory
     - name: Generate Test Project Artifacts
       run: |
         cd ${{ env.PROJECT_REPO_NAME }}/test/cool_project/build
+        ls -R
         7z a ./cool_project.zip .
 
     # Package directory into zip and upload artifact
