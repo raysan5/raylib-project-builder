@@ -5,7 +5,7 @@ on:
   push:
     paths:
       - '.github/workflows/build_linux_test_project.yml'
-    
+
 permissions:
   contents: read
 
@@ -14,7 +14,7 @@ jobs:
     permissions:
       contents: write       # Required for actions/upload-release-asset to upload release asset
     runs-on: ubuntu-latest
-    
+
     # WARNING: Project (internal) name could not be the same as repository name
     env:
       PROJECT_NAME: rpb
@@ -31,20 +31,20 @@ jobs:
       uses: actions/checkout@master
       with:
         path: ${{ env.PROJECT_REPO_NAME }}
-      
+
     - name: Checkout raylib repo
       uses: actions/checkout@master
       with:
         repository: raysan5/raylib
         path: raylib
-        
+
     - name: Setup Release Paths
       run: |
         echo "PROJECT_VERSION=${{ github.event.release.tag_name }}" >> $GITHUB_ENV
         echo "PROJECT_RELEASE_PATH=${{ env.PROJECT_NAME }}_v${{ github.event.release.tag_name }}_linux_x64" >> $GITHUB_ENV
       shell: bash
       if: github.event_name == 'release' && github.event.action == 'published'
-    
+
     - name: Setup Environment
       run: | 
         sudo apt-get update -qq
