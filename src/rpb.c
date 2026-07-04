@@ -1531,7 +1531,26 @@ static void ProcessCommandLine(int argc, char *argv[])
 #endif
         printf("INFO: Build output platform: %s\n", platformNames[buildPlatform]);
 
-        printf("INFO: raylib source path: %s/%s\n", GetWorkingDirectory(), rpcGetText(config, "RAYLIB_SRC_PATH"));
+        // Validate raylib source path, make sure to use an absolute path
+        //------------------------------------------------------------------------------------------
+        char *raylibPath = rpcGetText(config, "RAYLIB_SRC_PATH");
+        char raylibFullPath[256] = { 0 }; // raylib full path (in case of .rpc relative path provided)
+
+        // Get full raylib path from project property (.rpc path can be relative)
+        if (IsPathAbsolute(raylibPath)) strcpy(raylibFullPath, raylibPath);
+        else
+        {
+#if defined(_WIN32)
+            TextCopy(raylibFullPath, TextFormat("%s\\%s", GetWorkingDirectory(), raylibPath));
+#else
+            TextCopy(raylibFullPath, TextFormat("%s/%s", GetWorkingDirectory(), raylibPath));
+#endif
+        }
+
+        rpcSetText(config, "RAYLIB_SRC_PATH", raylibFullPath);
+        //------------------------------------------------------------------------------------------
+
+        printf("INFO: raylib source full path: %s\n", raylibFullPath);
 
         // Build provided project to output build directory for selected platform
         int result = BuildProject(config, buildPlatform, buildPath);
@@ -1842,6 +1861,9 @@ static int BuildProject(rpcProjectConfig config, int platform, const char *build
                 LOG("INFO: Rebuilding raylib library...\n");
 
                 ChangeDirectory(TextFormat("%s", rpcGetText(config, "RAYLIB_SRC_PATH")));
+
+                LOG("INFO: Changing to directory: %s\n", TextFormat("%s", rpcGetText(config, "RAYLIB_SRC_PATH")));
+
                 system("make PLATFORM=PLATFORM_DESKTOP -B");
             }
 
