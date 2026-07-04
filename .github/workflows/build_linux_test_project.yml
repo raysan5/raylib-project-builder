@@ -70,12 +70,11 @@ jobs:
       run: |
         cd ${{ env.PROJECT_REPO_NAME }}/test/cool_project
         ../../src/${{ env.PROJECT_NAME }} -i cool_project.rpc --build Linux -p RAYLIB_SRC_PATH=../../../../raylib/src
-        ls build
-        ls src
 
     - name: Generate Test Project Artifacts
       run: |
         cd ${{ env.PROJECT_REPO_NAME }}/test/cool_project/build
+        ls -R
         7z a ./cool_project.zip .
 
     # Package directory into zip and upload artifact
