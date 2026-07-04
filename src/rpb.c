@@ -1469,7 +1469,11 @@ static void ProcessCommandLine(int argc, char *argv[])
                 else if (keyValueCount == 2)
                 {
                     // Update required property on loaded project (if key found)
+                    // TODO: Properly set proterty as text or value, instead of current hack,
+                    // key info should be parsed and automatically determine the type of property (and parameters)
                     int updated = rpcSetText(config, keyValue[0], keyValue[1]);
+                    if ((keyValue[1][0] == '0') || (keyValue[1][0] == '1'))
+                        rpcSetValue(config, keyValue[0], TextToInteger(keyValue[1]));
                     if (updated == -1) printf("WARNING: Property to update not found in provided project config: %s\n", keyValue[0]);
                     else printf("INFO: Project property updated: %s=%s\n", keyValue[0], keyValue[1]);
                 }
