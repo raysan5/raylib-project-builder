@@ -1525,9 +1525,9 @@ static void ProcessCommandLine(int argc, char *argv[])
             printf("WARNING: Revert to default platform: %s\n", platformNames[buildPlatform]);
         }
 #endif
-        printf("INFO: Build output platform:   %s\n", platformNames[buildPlatform]);
+        printf("INFO: Build output platform: %s\n", platformNames[buildPlatform]);
 
-        printf("INFO: raylib source path: %s\n", rpcGetText(config, "RAYLIB_SRC_PATH"));
+        printf("INFO: raylib source path: %s/%s\n", GetWorkingDirectory(), rpcGetText(config, "RAYLIB_SRC_PATH"));
 
         // Build provided project to output build directory for selected platform
         int result = BuildProject(config, buildPlatform, buildPath);
@@ -1675,7 +1675,7 @@ static int BuildProject(rpcProjectConfig config, int platform, const char *build
     {
         // Create build directory if required
         MakeDirectory(buildOutputPath);
-        LOG("INFO: [%s] Created build output path\n", buildOutputPath);
+        LOG("INFO: Created build output path: %s\n", buildOutputPath);
     }
 
     LOG("INFO: Build output path: %s\n", buildOutputPath);
@@ -1837,7 +1837,8 @@ static int BuildProject(rpcProjectConfig config, int platform, const char *build
 
             // 3. Build project (Makefile)
             ChangeDirectory(TextFormat("%s", buildOutputPath));
-            system(TextFormat("make -C %s PLATFORM=PLATFORM_DESKTOP -B", TextFormat("%s/src", GetDirectoryPath(inProjectFilePath))));
+            system(TextFormat("make -C %s PLATFORM=PLATFORM_DESKTOP RAYLIB_SRC_PATH=%s -B", 
+                TextFormat("%s/src", GetDirectoryPath(inProjectFilePath)), rpcGetText(project, "RAYLIB_SRC_PATH")));
 
             // 4. Process assets
             // NOTE: Copy to destination assets output, directory created automatically
@@ -1900,13 +1901,13 @@ static int BuildProject(rpcProjectConfig config, int platform, const char *build
             {
                 // Rebuild raylib library for current platform
                 ChangeDirectory(TextFormat("%s", rpcGetText(project, "RAYLIB_SRC_PATH")));
-                system("wsl make PLATFORM=PLATFORM_DESKTOP -B");
+                system("make PLATFORM=PLATFORM_DESKTOP -B");
             }
 
             // 3. Build project (Makefile)
             ChangeDirectory(TextFormat("%s/src", GetDirectoryPath(inProjectFilePath)));
             system(TextFormat("make PLATFORM=PLATFORM_DESKTOP PROJECT_BUILD_PATH=%s%s.app/Contents/MacOS RAYLIB_SRC_PATH=%s -B",
-                buildOutputPath, rpcGetText(project, "PROJECT_INTERNAL_NAME"), "/Users/raysan5/GitHub/raylib/src"));
+                buildOutputPath, rpcGetText(project, "PROJECT_INTERNAL_NAME"), rpcGetText(project, "RAYLIB_SRC_PATH")));
 
             // 4. Process assets
             // NOTE: Copy to destination assets output, directory created automatically
