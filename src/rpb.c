@@ -1872,7 +1872,8 @@ static int BuildProject(rpcProjectConfig config, int platform, const char *build
 
             // 3. Build project (Makefile)
             ChangeDirectory(TextFormat("%s", buildOutputPath));
-            system(TextFormat("make -C %s PLATFORM=PLATFORM_DESKTOP RAYLIB_SRC_PATH=%s -B", 
+            system(TextFormat("make -C %s PROJECT_NAME=%s PLATFORM=PLATFORM_DESKTOP RAYLIB_SRC_PATH=%s -B",
+                rpcGetText(config, "PROJECT_INTERNAL_NAME"),
                 TextFormat("%s/src", GetDirectoryPath(inProjectFilePath)), rpcGetText(config, "RAYLIB_SRC_PATH")));
 
             // 4. Process assets
