@@ -77,6 +77,7 @@ typedef enum {
     RPC_TYPE_TEXT,
     RPC_TYPE_TEXT_FILE,
     RPC_TYPE_TEXT_PATH,
+    RPC_TYPE_TEXT_TOGGLE,
 } rpcPropertyEntryType;
 
 // Property platform type
@@ -111,7 +112,8 @@ typedef struct {
     int value;          // Entry value, integer from text
 
     // Transient data
-    bool editMode;      // Edit mode required for UI text control
+    bool editMode;      // UI: TextBox control, edit mode required
+    int toggleActive;   // UI: ToggleGroup control, active toggle
 } rpcPropertyEntry;
 
 // Project Config Data (generic)
@@ -231,13 +233,31 @@ rpcProjectConfig rpcLoadProjectConfig(const char *fileName)
             }
             else // Value is text
             {
+                TextCopy(config.entries[i].text, data.entries[i].text);
+
                 if (TextFindIndex(config.entries[i].key, "_FILE") > 0) 
                     config.entries[i].type = RPC_TYPE_TEXT_FILE;
                 else if (TextFindIndex(config.entries[i].key, "_PATH") > 0) 
                     config.entries[i].type = RPC_TYPE_TEXT_PATH;
-                else config.entries[i].type = RPC_TYPE_TEXT;
+                else if (TextFindIndex(config.entries[i].key, "_TOGGLE_") > 0)
+                {
+                    config.entries[i].type = RPC_TYPE_TEXT_TOGGLE;
 
-                TextCopy(config.entries[i].text, data.entries[i].text);
+                    // Update name, remove _TOGGLE_ text
+                    char configName[64] = { 0 };
+                    strncpy(configName, config.entries[i].name, 63);
+                    memset(config.entries[i].name, 0, 64);
+                    TextCopy(config.entries[i].name, configName + 7);
+
+                    // Update config.entries[i].toggleActive
+                    int toggleOptionsCount = 0;
+                    const char **toggleOptions = TextSplit(config.entries[i].text, ';', &toggleOptionsCount);
+                    for (int j = 0; j < toggleOptionsCount; j++)
+                    {
+                        if (toggleOptions[j][0] == '[') { config.entries[i].toggleActive = j; break; }
+                    }
+                }
+                else config.entries[i].type = RPC_TYPE_TEXT;
             }
         }
 
@@ -317,7 +337,8 @@ void rpcSaveProjectConfig(rpcProjectConfig config, const char *fileName, int fla
                 case RPC_TYPE_VALUE: rini_set_value(&data, entry->key, entry->value, entry->desc); break;
                 case RPC_TYPE_TEXT:
                 case RPC_TYPE_TEXT_FILE:
-                case RPC_TYPE_TEXT_PATH: rini_set_value_text(&data, entry->key, entry->text, entry->desc); break;
+                case RPC_TYPE_TEXT_PATH: 
+                case RPC_TYPE_TEXT_TOGGLE: rini_set_value_text(&data, entry->key, entry->text, entry->desc); break;
                 default: break;
             }
         }
@@ -549,6 +570,7 @@ int rpcSetPropertyEntry(rpcProjectConfig config, rpcPropertyEntry *entry)
             config.entries[i].platform = entry->platform;       // Entry platform: WINDOWS, LINUX, MACOS, HTML5, ANDROID, DRM, SWITCH, DREAMCAST, FREEBSD...
             config.entries[i].type = entry->type;               // Entry type of data: VALUE (int), BOOL (int), TEXT (string), FILE (string-file), PATH (string-path)
             config.entries[i].value = entry->value;             // Entry value, integer from text
+            config.entries[i].toggleActive = entry->toggleActive; // Entry toggle active
 
             result = i;
             break;

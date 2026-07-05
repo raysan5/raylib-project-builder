@@ -917,6 +917,44 @@ static void UpdateDrawFrame(void)
                             projectEditProperty = i;
                         }
                     } break;
+                    case RPC_TYPE_TEXT_TOGGLE:
+                    {
+                        int prevToggleActive = project.entries[i].toggleActive;
+                        GuiToggleGroup((Rectangle){ textOffsetX, tabBarOffsetY + 36 + (24 + 8)*k + panelScroll.y, 234, 24 },
+                            project.entries[i].text, &project.entries[i].toggleActive);
+
+                        // If toggle changes, update text to selected option
+                        if (prevToggleActive != project.entries[i].toggleActive)
+                        {
+                            char updatedText[64] = { 0 };
+                            int updatedTextPosition = 0;
+
+                            int toggleOptionsCount = 0;
+                            const char **toggleOptions = TextSplit(project.entries[i].text, ';', &toggleOptionsCount);
+                            for (int t = 0; t < toggleOptionsCount; t++)
+                            {
+                                if (project.entries[i].toggleActive == t)
+                                {
+                                    // Add [] to selected option
+                                    TextAppend(updatedText, TextFormat("[%s]", toggleOptions[t]), &updatedTextPosition);
+                                }
+                                else
+                                {
+                                    // Remove [] from option to append
+                                    char toggleOptionClean[32] = { 0 };
+                                    if (toggleOptions[t][0] == '[') strncpy(toggleOptionClean, toggleOptions[t] + 1, strlen(toggleOptions[t]) - 2);
+                                    else strcpy(toggleOptionClean, toggleOptions[t]);
+                                    TextAppend(updatedText, toggleOptionClean, &updatedTextPosition);
+                                }
+
+                                if (t < (toggleOptionsCount - 1)) TextAppend(updatedText, ";", &updatedTextPosition);
+                            }
+
+                            memset(project.entries[i].text, 0, 64);
+                            TextCopy(project.entries[i].text, updatedText);
+                        }
+
+                    } break;
                     default: break;
                 }
                 GuiSetStyle(TEXTBOX, TEXT_ALIGNMENT, TEXT_ALIGN_LEFT);
@@ -1821,7 +1859,16 @@ static int BuildProject(rpcProjectConfig config, int platform, const char *build
             //    - C/C++ compiler (Visual Studio Build Tools - MSBuild): https://visualstudio.microsoft.com/downloads/
             //
 
-            if (TextIsEqual(rpcGetText(config, "PLATFORM_WINDOWS_DEFAULT_TOOLCHAIN"), "MSBUILD"))
+            // Get selected toggl option: "MSBUILD;[W64DEVKIT]"
+            int toggleOptionActive = 0;
+            int toggleOptionsCount = 0;
+            const char **toggleOptions = TextSplit(rpcGetText(config, "PLATFORM_WINDOWS_TOGGLE_TOOLCHAIN"), ';', &toggleOptionsCount);
+            for (int i = 0; i < toggleOptionsCount; i++)
+            {
+                if (toggleOptions[i][0] == '[') { toggleOptionActive = i; break; }
+            }
+
+            if (toggleOptionActive == 0) // MSBUILD
             {
                 // 1. Setup environment (...)
                 
@@ -1848,7 +1895,7 @@ static int BuildProject(rpcProjectConfig config, int platform, const char *build
                     rpcGetText(config, "PROJECT_INTERNAL_NAME")),
                     TextFormat("%s/%s.exe", buildOutputPath, rpcGetText(config, "PROJECT_INTERNAL_NAME")));
             }
-            else
+            else // W64DEVKIT
             {
                 // 1. Setup environment
                 PUTENV(TextFormat("PROJECT_BUILD_PATH=%s", buildOutputPath));
