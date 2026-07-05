@@ -1,6 +1,6 @@
 # `rpb` - raylib project builder
 
-![raylib project builder](screenshots/rpb_v010_shot01.png)
+![raylib project builder](screenshots/rpb_v100-alpha_shot01.png)
 
 ## What can I do with `rpb`?
 

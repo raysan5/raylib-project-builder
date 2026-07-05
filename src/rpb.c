@@ -21,7 +21,7 @@
 *           NOTE: Avoids including tinyfiledialogs depencency library
 *
 *   VERSIONS HISTORY:
-*       1.0  (01-Jun-2026)  First release
+*       1.0  (05-Jul-2026)  First release: rpv 1.0-alpha
 *
 *   DEPENDENCIES:
 *       raylib 6.1-dev          - Windowing/input management and drawing
@@ -72,7 +72,7 @@
 #define TOOL_VERSION                "1.0"
 #define TOOL_DESCRIPTION            "A simple and easy-to-use raylib project builder"
 #define TOOL_DESCRIPTION_BREAK      "A simple and easy-to-use\nraylib project builder"
-#define TOOL_RELEASE_DATE           "Jun.2026"
+#define TOOL_RELEASE_DATE           "Jul.2026"
 #define TOOL_LOGO_COLOR             0x7c7c80ff
 #define TOOL_CONFIG_FILENAME        "rpb.ini"
 
@@ -930,7 +930,7 @@ static void UpdateDrawFrame(void)
                             int updatedTextPosition = 0;
 
                             int toggleOptionsCount = 0;
-                            const char **toggleOptions = TextSplit(project.entries[i].text, ';', &toggleOptionsCount);
+                            char **toggleOptions = TextSplit(project.entries[i].text, ';', &toggleOptionsCount);
                             for (int t = 0; t < toggleOptionsCount; t++)
                             {
                                 if (project.entries[i].toggleActive == t)
@@ -1257,7 +1257,7 @@ static void UpdateDrawFrame(void)
 
             GuiPanel((Rectangle){ 0, GetScreenHeight()/2 - 300/2, GetScreenWidth(), 300 }, NULL);
             GuiSetIconScale(3);
-            GuiSetStyle(DEFAULT, TEXT_SIZE, GuiGetFont().baseSize*3);
+            GuiSetStyle(DEFAULT, TEXT_SIZE, GuiGetFont().baseSize*2);
             GuiSetStyle(LABEL, TEXT_ALIGNMENT, TEXT_ALIGN_CENTER);
             GuiLabel((Rectangle){ 0, GetScreenHeight()/2 - 300/2 + 20, GetScreenWidth(), 80 }, "#219#");
             GuiLabel((Rectangle){ 0, GetScreenHeight()/2 - 300/2 + 90, GetScreenWidth(), 80 }, "BUILDING PROJECT for TARGET PLATFORM");
@@ -1862,7 +1862,7 @@ static int BuildProject(rpcProjectConfig config, int platform, const char *build
             // Get selected toggl option: "MSBUILD;[W64DEVKIT]"
             int toggleOptionActive = 0;
             int toggleOptionsCount = 0;
-            const char **toggleOptions = TextSplit(rpcGetText(config, "PLATFORM_WINDOWS_TOGGLE_TOOLCHAIN"), ';', &toggleOptionsCount);
+            char **toggleOptions = TextSplit(rpcGetText(config, "PLATFORM_WINDOWS_TOGGLE_TOOLCHAIN"), ';', &toggleOptionsCount);
             for (int i = 0; i < toggleOptionsCount; i++)
             {
                 if (toggleOptions[i][0] == '[') { toggleOptionActive = i; break; }
