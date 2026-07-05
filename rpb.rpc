@@ -52,7 +52,6 @@ PROJECT_ASSETS_OUTPUT_PATH              "resources"                         # Pr
 
 # raylib settings
 #------------------------------------------------------------------------------------
-RAYLIB_FLAG_BUILDING_REQUIRED           0                                   # Flag: Require raylib library rebuild
 RAYLIB_SRC_PATH                         "C:/GitHub/raylib/src"              # Path to raylib source code, to be build for target platform (OS-dependant)
 RAYLIB_OPENGL_VERSION                   "3.3"                               # OpenGL version to be used by raylib, WARNING: Platform dependant!
 # TODO: Support raylib config.h options
