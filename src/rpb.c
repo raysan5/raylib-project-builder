@@ -175,8 +175,8 @@ static const char *toolName = TOOL_NAME;
 static const char *toolVersion = TOOL_VERSION;
 static const char *toolDescription = TOOL_DESCRIPTION;
 
-static const int screenWidth = 1060;        // Default screen width (at initialization)
-static const int screenHeight = 860;        // Default screen height (at initialization)
+static const int screenWidth = 744;        // Default screen width (at initialization)
+static const int screenHeight = 640;        // Default screen height (at initialization)
 
 // NOTE: Max length depends on OS, in Windows MAX_PATH = 256
 static char inFileName[256] = { 0 };        // Input file name (required in case of drag & drop over executable)
@@ -206,9 +206,9 @@ static Rectangle panelView = { 0 };
 // BUILD platforms: 0-Windows, 1-Linux, 2-macOS, 3-Wasm, 4-Android, 5-FreeBSD, 6-DRM, 7-ESP32, 8-Dreamcast, 9-Switch, ...
 static bool buildPlatformsEnabled[10] = {
 #if defined(_WIN32)
-    true, true, false, true, true, false, false, true, true, false
+    true, true, false, true, true, false, false, false, false, false
 #elif defined(__linux__)
-    false, true, false, true, true, false, true, true, false, false
+    false, true, false, true, true, false, false, false, false, false
 #elif defined(__APPLE__)
     false, false, true, true, false, false, false, false, false, false
 #elif defined(__EMSCRIPTEN__)
@@ -593,10 +593,11 @@ static void UpdateDrawFrame(void)
     if ((IsKeyDown(KEY_LEFT_CONTROL) && IsKeyPressed(KEY_B)) || mainToolbarState.btnBuildProjectPressed)
     {
 #if defined(_WIN32)
-        TextCopy(buildProjectDirPath, TextFormat("%s\\%s", GetDirectoryPath(inFileName), rpcGetText(project, "BUILD_OUTPUT_PATH")));
+        TextCopy(buildProjectDirPath, TextFormat("%s\\%s", GetDirectoryPath(inProjectFilePath), rpcGetText(project, "BUILD_OUTPUT_PATH")));
 #else
-        TextCopy(buildProjectDirPath, TextFormat("%s/%s", GetDirectoryPath(inFileName), rpcGetText(project, "BUILD_OUTPUT_PATH")));
+        TextCopy(buildProjectDirPath, TextFormat("%s/%s", GetDirectoryPath(inProjectFilePath), rpcGetText(project, "BUILD_OUTPUT_PATH")));
 #endif
+        MakeDirectory(buildProjectDirPath);
         showBuildProjectDialog = true;
     }
 
@@ -717,53 +718,56 @@ static void UpdateDrawFrame(void)
 
         ClearBackground(GetColor(GuiGetStyle(DEFAULT, BACKGROUND_COLOR)));
 
-        // Draw all program UI
+        GuiLabel((Rectangle){ 12, 44, GetScreenWidth(), 24 },
+            TextFormat("HOST PLATFORM: %s (%s) - SELECT TARGET BUILD PLATFORM:", hostPlatform, hostArch));
+
+        // Draw build platform toggle selector
         //----------------------------------------------------------------------------------
-        // Draw selected build platform
-        for (int i = 0; i < MAX_PLATFORMS; i++)
+        for (int i = 0; i < 7 /*MAX_PLATFORMS*/; i++)
         {
             if (currentPlatform == i) platformEnabled[i] = true;
             if (platformEnabled[i] && (currentPlatform != i)) platformEnabled[i] = false;
         }
 
-        GuiLabel((Rectangle){ 12, 44, GetScreenWidth(), 24 },
-            TextFormat("HOST PLATFORM: %s (%s) - SELECT TARGET BUILD PLATFORM:", hostPlatform, hostArch));
-
+        if (project.entryCount == 0) GuiDisable();
         // NOTE: Enabled platforms depend on HOST platform
-        for (int i = 0; i < MAX_PLATFORMS; i++)
+        for (int i = 0; i < 7 /*MAX_PLATFORMS*/; i++)
         {
             if (!buildPlatformsEnabled[i]) GuiDisable();
 
-            if (i == hostPlatformId) DrawRectangleRec((Rectangle){ 12 + (96 + 8)*i - 2, 76 - 2, 100, 100 },
-                Fade(GetColor(GuiGetStyle(DEFAULT, BASE_COLOR_PRESSED)), 0.8f));
+            if ((project.entryCount != 0) && (i == hostPlatformId)) 
+                DrawRectangleRec((Rectangle){ 12 + (96 + 8)*i - 2, 76 - 2, 100, 100 }, Fade(GetColor(GuiGetStyle(DEFAULT, BASE_COLOR_PRESSED)), 0.8f));
 
             GuiToggle((Rectangle){ 12 + (96 + 8)*i, 76, 96, 96 }, NULL, &platformEnabled[i]);
-            GuiEnable();
+            if (project.entryCount != 0) GuiEnable();
 
             Color colTex = GetColor(GuiGetStyle(TOGGLE, TEXT_COLOR_NORMAL));
             if (CheckCollisionPointRec(GetMousePosition(), (Rectangle){ 12 + (96 + 8)*i, 76, 96, 96 }))
                 colTex = GetColor(GuiGetStyle(TOGGLE, TEXT_COLOR_FOCUSED));
-            if (!buildPlatformsEnabled[i]) colTex = GetColor(GuiGetStyle(TOGGLE, TEXT_COLOR_DISABLED));
+            if (!buildPlatformsEnabled[i] || (project.entryCount == 0)) colTex = GetColor(GuiGetStyle(TOGGLE, TEXT_COLOR_DISABLED));
             else if (platformEnabled[i]) colTex = GetColor(GuiGetStyle(TOGGLE, TEXT_COLOR_PRESSED));
 
             DrawTexturePro(texPlatforms, (Rectangle){ 128*i, 0, 128, 128 }, (Rectangle){ 12 + (96 + 8)*i, 76, 96, 96 },
                 (Vector2){ 0.0f, 0.0f }, 0.0f, colTex);
         }
+        GuiEnable();
 
-        for (int i = 0; i < MAX_PLATFORMS; i++)
+        for (int i = 0; i < 7 /*MAX_PLATFORMS*/; i++)
         {
             if (platformEnabled[i] && (i != currentPlatform)) { currentPlatform = i; break; }
         }
+        //----------------------------------------------------------------------------------
 
-        int propsPanelOffsetY = 76 + 96 + 12;
+        int tabBarOffsetY = 76 + 96 + 12;
 
         // Draw tab bar for project config categories: PROJECT, BUILD, PLATFORM...
+        //----------------------------------------------------------------------------------
         if (project.entryCount == 0)
         {
             GuiSetIconScale(3);
             GuiSetStyle(DEFAULT, TEXT_SIZE, GuiGetFont().baseSize*2);
             GuiSetStyle(LABEL, TEXT_ALIGNMENT, TEXT_ALIGN_CENTER);
-            GuiLabel((Rectangle){ 0, propsPanelOffsetY, GetScreenWidth(), GetScreenHeight() - 188 - 56 - 24 },
+            GuiLabel((Rectangle){ 0, tabBarOffsetY, GetScreenWidth(), GetScreenHeight() - 188 - 56 - 24 },
                 "#10#Drag & drop or load a project config file .rpc");
             GuiSetStyle(LABEL, TEXT_ALIGNMENT, TEXT_ALIGN_LEFT);
             GuiSetStyle(DEFAULT, TEXT_SIZE, GuiGetFont().baseSize);
@@ -772,19 +776,24 @@ static void UpdateDrawFrame(void)
             GuiDisable();
         }
 
-        GuiSetStyle(TABBAR, TAB_ITEMS_WIDTH, 172);
-        GuiTabBar((Rectangle){ 0, propsPanelOffsetY, GetScreenWidth(), 28 },
-            "#176#PROJECT SETTINGS;#140#BUILD SETTINGS;#181#PLATFORM SETTINGS;#178#DEPLOY OPTIONS;#12#IMAGERY EDITION;#133#raylib CONFIG", NULL, &tabActive);
+        GuiSetStyle(TABBAR, TAB_ITEMS_WIDTH, 180);
+        GuiTabBar((Rectangle){ 0, tabBarOffsetY, GetScreenWidth(), 28 },
+            "#176#PROJECT SETTINGS;#140#BUILD SETTINGS;#181#PLATFORM SETTINGS;#178#DEPLOY OPTIONS"/*;#12#IMAGERY EDITION;#133#raylib CONFIG*/, NULL, &tabActive);
         GuiEnable();
+        //----------------------------------------------------------------------------------
 
-        int categoryHeight = 12;
+        int categoryHeight = 24;
         for (int i = 0; i < project.entryCount; i++)
         {
             if (project.entries[i].category == (tabActive + 1)) categoryHeight += (24 + 8);
         }
-        if ((categoryHeight > (GetScreenHeight() - 188 - 48 - 24)) && ((tabActive + 1) != RPC_CAT_PLATFORM))
+
+        // Consider warning message on PROJECT category
+        if ((tabActive + 1) == RPC_CAT_PROJECT) categoryHeight += 64;
+
+        if ((categoryHeight > (GetScreenHeight() - tabBarOffsetY - 28 - 48 - 24)) && ((tabActive + 1) != RPC_CAT_PLATFORM))
         {
-            GuiScrollPanel((Rectangle){ 0, 188, GetScreenWidth(), GetScreenHeight() - 188 - 56 - 24 }, NULL,
+            GuiScrollPanel((Rectangle){ 0, tabBarOffsetY + 28 - 1, GetScreenWidth(), GetScreenHeight() - tabBarOffsetY - 28 - 56 - 24 }, NULL,
                 (Rectangle){ 0, 188, GetScreenWidth() - 16, categoryHeight }, &panelScroll, &panelView);
         }
         else
@@ -805,29 +814,33 @@ static void UpdateDrawFrame(void)
                 {
                     if (i == 0)
                     {
+                        GuiSetIconScale(3);
                         GuiSetStyle(LABEL, TEXT_ALIGNMENT, TEXT_ALIGN_CENTER);
                         GuiSetStyle(DEFAULT, TEXT_SIZE, GuiGetFont().baseSize*2);
-                        GuiLabel((Rectangle){ 24, propsPanelOffsetY + 36, GetScreenWidth() - 48, 48 }, "#220# WARNING: Project settings should not be modified here, use [rpc] tool");
+                        GuiLabel((Rectangle){ 24, tabBarOffsetY + 36 + panelScroll.y, GetScreenWidth() - 48, 48 }, 
+                            "#220# WARNING: Use [rpc] to modify project settings!");
                         GuiSetStyle(DEFAULT, TEXT_SIZE, GuiGetFont().baseSize);
                         GuiSetStyle(LABEL, TEXT_ALIGNMENT, TEXT_ALIGN_LEFT);
+                        GuiSetIconScale(1);
                     }
 
                     GuiDisable();
-                    propsPanelOffsetY = 76 + 96 + 12 + 64;
+                    tabBarOffsetY = 76 + 96 + 12 + 64;
                 }
                 else
                 {
                     GuiEnable();
-                    propsPanelOffsetY = 76 + 96 + 12;
+                    tabBarOffsetY = 76 + 96 + 12 + 12;
                 }
 
                 if ((project.entries[i].platform != RPC_PLATFORM_ANY) && (project.entries[i].platform != currentPlatform)) continue;
 
                 if (project.entries[i].type != RPC_TYPE_BOOL)
-                    GuiLabel((Rectangle){ 24, propsPanelOffsetY + 36 + (24 + 8)*k + panelScroll.y, 180, 24 }, TextFormat("%s:", project.entries[i].name));
+                    GuiLabel((Rectangle){ 24, tabBarOffsetY + 36 + (24 + 8)*k + panelScroll.y, 150, 24 }, TextFormat("%s:", project.entries[i].name));
 
-                int descWidth = 460;
-                int textWidth = GetScreenWidth() - (24 + 180 + 12 + descWidth + 24);
+                int textOffsetX = 24 + 150;
+                int descWidth = 0;
+                int textWidth = GetScreenWidth() - textOffsetX - 12;
 
                 GuiSetStyle(TEXTBOX, TEXT_ALIGNMENT, TEXT_ALIGN_LEFT);
                 switch (project.entries[i].type)
@@ -835,24 +848,33 @@ static void UpdateDrawFrame(void)
                     case RPC_TYPE_BOOL:
                     {
                         bool checked = (bool)project.entries[i].value;
-                        GuiCheckBox((Rectangle){ 24 + 2, propsPanelOffsetY + 36 + (24 + 8)*k + 2 + panelScroll.y, 20, 20 }, project.entries[i].name + 5, &checked);
+                        GuiCheckBox((Rectangle){ 24 + 2, tabBarOffsetY + 36 + (24 + 8)*k + 2 + panelScroll.y, 20, 20 }, project.entries[i].name + 5, &checked);
                         project.entries[i].value = (checked? 1 : 0);
                     } break;
                     case RPC_TYPE_VALUE:
                     {
-                        if (GuiValueBox((Rectangle){ 24 + 180, propsPanelOffsetY + 36 + (24 + 8)*k + panelScroll.y, 180, 24 },
+                        if (GuiValueBox((Rectangle){ textOffsetX, tabBarOffsetY + 36 + (24 + 8)*k + panelScroll.y, 180, 24 },
                             NULL, &project.entries[i].value, 0, 1024, project.entries[i].editMode)) project.entries[i].editMode = !project.entries[i].editMode;
                     } break;
                     case RPC_TYPE_TEXT:
                     {
-                        if (GuiTextBox((Rectangle){ 24 + 180, propsPanelOffsetY + 36 + (24 + 8)*k + panelScroll.y, textWidth, 24 },
+                        if (GuiTextBox((Rectangle){ textOffsetX, tabBarOffsetY + 36 + (24 + 8)*k + panelScroll.y, textWidth, 24 },
                             project.entries[i].text, 255, project.entries[i].editMode)) project.entries[i].editMode = !project.entries[i].editMode;
                     } break;
                     case RPC_TYPE_TEXT_FILE:
                     {
-                        if (GuiTextBox((Rectangle){ 24 + 180, propsPanelOffsetY + 36 + (24 + 8)*k + panelScroll.y, textWidth - 90, 24 },
+                        if (GuiTextBox((Rectangle){ textOffsetX, tabBarOffsetY + 36 + (24 + 8)*k + panelScroll.y, textWidth - 90, 24 },
                             project.entries[i].text, 255, project.entries[i].editMode)) project.entries[i].editMode = !project.entries[i].editMode;
-                        if (GuiButton((Rectangle){ 24 + 180 + textWidth - 86, propsPanelOffsetY + 36 + (24 + 8)*k + panelScroll.y, 86, 24 }, "#6#Browse"))
+
+                        if (!project.entries[i].editMode)
+                        {
+                            if ((IsPathAbsolute(project.entries[i].text) && !FileExists(project.entries[i].text)) ||
+                                (!FileExists(TextFormat("%s/%s", GetDirectoryPath(inProjectFilePath), project.entries[i].text))))
+                                DrawRectangleLinesEx((Rectangle){ textOffsetX, tabBarOffsetY + 36 + (24 + 8)*k + panelScroll.y, textWidth - 90, 24 }, 
+                                    2.0f, Fade(GetColor(GuiGetStyle(DEFAULT, BASE_COLOR_PRESSED)), 0.8f));
+                        }
+
+                        if (GuiButton((Rectangle){ textOffsetX + textWidth - 86, tabBarOffsetY + 36 + (24 + 8)*k + panelScroll.y, 86, 24 }, "#6#Browse"))
                         {
                             memset(inFileName, 0, 256);
                             showLoadFileDialog = true;
@@ -861,10 +883,25 @@ static void UpdateDrawFrame(void)
                     } break;
                     case RPC_TYPE_TEXT_PATH:
                     {
-                        if (GuiTextBox((Rectangle){ 24 + 180, propsPanelOffsetY + 36 + (24 + 8)*k + panelScroll.y, textWidth - 90, 24 },
+                        if (GuiTextBox((Rectangle){ textOffsetX, tabBarOffsetY + 36 + (24 + 8)*k + panelScroll.y, textWidth - 90, 24 },
                             project.entries[i].text, 255, project.entries[i].editMode)) project.entries[i].editMode = !project.entries[i].editMode;
 
-                        if (GuiButton((Rectangle){ 24 + 180 + textWidth - 86, propsPanelOffsetY + 36 + (24 + 8)*k + panelScroll.y, 86, 24 }, "#173#Browse"))
+                        if (!project.entries[i].editMode)
+                        {
+                            if (IsPathAbsolute(project.entries[i].text))
+                            {
+                                if (!DirectoryExists(project.entries[i].text))
+                                    DrawRectangleLinesEx((Rectangle){ textOffsetX, tabBarOffsetY + 36 + (24 + 8)*k + panelScroll.y, textWidth - 90, 24 }, 
+                                        2.0f, Fade(GetColor(GuiGetStyle(DEFAULT, BASE_COLOR_PRESSED)), 0.8f));
+                            }
+                            else if (!DirectoryExists(TextFormat("%s/%s", GetDirectoryPath(inProjectFilePath), project.entries[i].text)))
+                            {
+                                DrawRectangleLinesEx((Rectangle){ textOffsetX, tabBarOffsetY + 36 + (24 + 8)*k + panelScroll.y, textWidth - 90, 24 }, 
+                                    2.0f, Fade(GetColor(GuiGetStyle(DEFAULT, BASE_COLOR_PRESSED)), 0.8f));
+                            }
+                        }
+
+                        if (GuiButton((Rectangle){ textOffsetX + textWidth - 86, tabBarOffsetY + 36 + (24 + 8)*k + panelScroll.y, 86, 24 }, "#173#Browse"))
                         {
                             showLoadDirectoryDialog = true;
                             projectEditProperty = i;
@@ -874,10 +911,15 @@ static void UpdateDrawFrame(void)
                 }
                 GuiSetStyle(TEXTBOX, TEXT_ALIGNMENT, TEXT_ALIGN_LEFT);
 
-                // Draw field description
+                // Draw property description
                 if (project.entries[i].type == RPC_TYPE_BOOL)
-                    GuiStatusBar((Rectangle){ 24 + 180, propsPanelOffsetY + 36 + (24 + 8)*k + panelScroll.y, (textWidth + descWidth + 12), 24 }, project.entries[i].desc);
-                else GuiStatusBar((Rectangle){ 24 + 180 + textWidth + 12, propsPanelOffsetY + 36 + (24 + 8)*k + panelScroll.y, descWidth, 24 }, project.entries[i].desc);
+                    GuiStatusBar((Rectangle){ textOffsetX, tabBarOffsetY + 36 + (24 + 8)*k + panelScroll.y, textWidth + descWidth, 24 }, project.entries[i].desc);
+                else if (project.entries[i].type == RPC_TYPE_VALUE)
+                    GuiStatusBar((Rectangle){ textOffsetX + 192, tabBarOffsetY + 36 + (24 + 8)*k + panelScroll.y, (textWidth + descWidth - 192), 24 }, project.entries[i].desc);
+                else
+                {
+                    if (descWidth > 0) GuiStatusBar((Rectangle){ textOffsetX + textWidth + 12, tabBarOffsetY + 36 + (24 + 8)*k + panelScroll.y, descWidth, 24 }, project.entries[i].desc);
+                }
 
                 k++;
 
@@ -891,10 +933,11 @@ static void UpdateDrawFrame(void)
         if (GuiButton((Rectangle){ 8, GetScreenHeight() - 24 - 8 - 40, GetScreenWidth() - 16, 40 }, "#131#BUILD and RUN PROJECT"))
         {
 #if defined(_WIN32)
-            TextCopy(buildProjectDirPath, TextFormat("%s\\%s", GetDirectoryPath(inFileName), rpcGetText(project, "BUILD_OUTPUT_PATH")));
+            TextCopy(buildProjectDirPath, TextFormat("%s\\%s", GetDirectoryPath(inProjectFilePath), rpcGetText(project, "BUILD_OUTPUT_PATH")));
 #else
-            TextCopy(buildProjectDirPath, TextFormat("%s/%s", GetDirectoryPath(inFileName), rpcGetText(project, "BUILD_OUTPUT_PATH")));
+            TextCopy(buildProjectDirPath, TextFormat("%s/%s", GetDirectoryPath(inProjectFilePath), rpcGetText(project, "BUILD_OUTPUT_PATH")));
 #endif
+            MakeDirectory(buildProjectDirPath);
             showBuildProjectDialog = true;
             runProjectRequired = true;
         }
@@ -1009,7 +1052,7 @@ static void UpdateDrawFrame(void)
                     showLoadRaylibDirectoryDialog = true;
                     strcpy(inFilePath, GetWorkingDirectory());
                 }
-                else rpcSetValue(project, "RAYLIB_FLAG_BUILDING_REQUIRED", 1);
+                else rpcSetValue(project, "BUILD_FLAG_RAYLIB_REBUILD", 1);
 
                 showRaylibMessagePanel = false;
             }
@@ -1668,6 +1711,7 @@ static int BuildProject(rpcProjectConfig config, int platform, const char *build
     //    - Create installer or bundle for target platform
     // 6. Run project (depends on host platform)
 
+    system("clear");
     LOG("INFO: Starting project building for platform: %s (%s)\n", platformNames[platform], hostArch);
 
     // Check build output path (relative or absolute)
@@ -1767,7 +1811,7 @@ static int BuildProject(rpcProjectConfig config, int platform, const char *build
                 PUTENV(TextFormat("PATH=%PATH%;%s", rpcGetText(config, "PLATFORM_WINDOWS_W64DEVKIT_PATH")));
 
                 // 2. Build raylib library
-                if (rpcGetValue(config, "RAYLIB_FLAG_BUILDING_REQUIRED") == 1)
+                if (rpcGetValue(config, "BUILD_FLAG_RAYLIB_REBUILD") == 1)
                 {
                     LOG("INFO: Rebuilding raylib library...\n");
 
@@ -1815,7 +1859,7 @@ static int BuildProject(rpcProjectConfig config, int platform, const char *build
             PUTENV("PATH=%PATH%;C:\\Windows\\System32"); // Make sure WSL is available in the path
 
             // 2. Build raylib library
-            if (rpcGetValue(config, "RAYLIB_FLAG_BUILDING_REQUIRED") == 1)
+            if (rpcGetValue(config, "BUILD_FLAG_RAYLIB_REBUILD") == 1)
             {
                 LOG("INFO: Rebuilding raylib library...\n");
 
@@ -1859,7 +1903,7 @@ static int BuildProject(rpcProjectConfig config, int platform, const char *build
             ChangeDirectory(TextFormat("%s", buildOutputPath));
 
             // 2. Build raylib library
-            if (rpcGetValue(config, "RAYLIB_FLAG_BUILDING_REQUIRED") == 1)
+            if (rpcGetValue(config, "BUILD_FLAG_RAYLIB_REBUILD") == 1)
             {
                 LOG("INFO: Rebuilding raylib library...\n");
 
@@ -1934,7 +1978,7 @@ static int BuildProject(rpcProjectConfig config, int platform, const char *build
             MakeDirectory(TextFormat("%s.app/Contents/Resources", rpcGetText(config, "PROJECT_INTERNAL_NAME")));
 
             // 2. Build raylib library
-            if (rpcGetValue(config, "RAYLIB_FLAG_BUILDING_REQUIRED") == 1)
+            if (rpcGetValue(config, "BUILD_FLAG_RAYLIB_REBUILD") == 1)
             {
                 LOG("INFO: Rebuilding raylib library...\n");
 
@@ -1986,7 +2030,7 @@ static int BuildProject(rpcProjectConfig config, int platform, const char *build
             PUTENV(TextFormat("EMSDK_PATH=%s", rpcGetText(config, "PLATFORM_WEB_EMSDK_PATH")));
 #endif
             // 2. Build raylib library
-            if (rpcGetValue(config, "RAYLIB_FLAG_BUILDING_REQUIRED") == 1)
+            if (rpcGetValue(config, "BUILD_FLAG_RAYLIB_REBUILD") == 1)
             {
                 LOG("INFO: Rebuilding raylib library...\n");
 
@@ -2003,7 +2047,8 @@ static int BuildProject(rpcProjectConfig config, int platform, const char *build
             // WARNING: raylib.h can not be found by emcc /usr/local/include must be added
             // WARNING: Path to libraylib.web.a must be provided to be found
             ChangeDirectory(TextFormat("%s", buildOutputPath));
-            system(TextFormat("make -C %s/src PLATFORM=PLATFORM_WEB RAYLIB_LIB_PATH=/home/ray/GitHub/raylib/src/ BUILD_WEB_SHELL=%s/%s BUILD_WEB_HEAP_SIZE=%iMB -B", GetDirectoryPath(inProjectFilePath),
+            system(TextFormat("make -C %s/src PLATFORM=PLATFORM_WEB RAYLIB_SRC_PATH=%s BUILD_WEB_SHELL=%s/%s BUILD_WEB_HEAP_SIZE=%iMB -B", 
+                GetDirectoryPath(inProjectFilePath), rpcGetText(config, "RAYLIB_SRC_PATH"),
                 GetDirectoryPath(inProjectFilePath), rpcGetText(config, "PLATFORM_WEB_SHELL_FILE"),
                 rpcGetValue(config, "PLATFORM_WEB_HEAP_MEMORY_SIZE")));
 
@@ -2023,7 +2068,7 @@ static int BuildProject(rpcProjectConfig config, int platform, const char *build
                     // when looking for a file that could not have been downloaded yet
                     ChangeDirectory(TextFormat("%s", buildOutputPath));
                 #if defined(_WIN32)
-                    system("start python -m http.server 8080"); // Init localhost just once
+                    system(TextFormat("start %s/python/3.13.3_64bit/python -m http.server 8080", rpcGetText(config, "PLATFORM_WEB_EMSDK_PATH")));
                     system(TextFormat("start explorer \"http://localhost:8080/%s.html\"", rpcGetText(config, "PROJECT_INTERNAL_NAME")));
                 #elif defined(__linux__)
                     system("pwd");
@@ -2049,9 +2094,9 @@ static int BuildProject(rpcProjectConfig config, int platform, const char *build
             // 
        
             // 1. Setup environment (...)
-#if defined(_WIN32)
             // NOTE: Environmnt expected to be pre-configured by users
-            system("export ANDROID_NDK=C:\\android-ndk");
+#if defined(_WIN32)
+            PUTENV(TextFormat("ANDROID_NDK=%s", rpcGetText(config, "PLATFORM_ANDROID_NDK_PATH")));
 #elif defined(__linux__)
             // Download and intall Android NDK package
             //system("mkdir -p ~/android-ndk");
@@ -2063,7 +2108,7 @@ static int BuildProject(rpcProjectConfig config, int platform, const char *build
 
 #endif
             // 2. Build raylib library
-            if (rpcGetValue(config, "RAYLIB_FLAG_BUILDING_REQUIRED") == 1)
+            if (rpcGetValue(config, "BUILD_FLAG_RAYLIB_REBUILD") == 1)
             {
                 LOG("INFO: Rebuilding raylib library...\n");
 
@@ -2176,21 +2221,22 @@ static int DirectoryCopy(const char *srcPath, const char *dstPath)
 // Check if provided path is an absolute path
 static bool IsPathAbsolute(const char *path)
 {
-    if ((path == NULL) || (path[0] == '\0')) return false;
+    int result = false;
+    if ((path == NULL) || (path[0] == '\0')) result = false;
 
 #ifdef _WIN32
     // UNC path (\\server\share)
-    if (path[0] == '\\' && path[1] == '\\') return true;
+    if (path[0] == '\\' && path[1] == '\\') result = true;
     // Drive letter (e.g. C:\ or D:/)
-    if (isalpha((unsigned char)path[0]) &&
-        (path[1] == ':') &&
-        ((path[2] == '\\') || (path[2] == '/'))) return true;
-    return false;
+    else if (isalpha((unsigned char)path[0]) && (path[1] == ':') &&
+        ((path[2] == '\\') || (path[2] == '/'))) result = true;
 #else
     // POSIX: must start with /
-    if (path[0] == '/') return true;
-    else return false;
+    if (path[0] == '/') result = true;
+    else result = false;
 #endif
+
+    return result;
 }
 
 #if defined(_WIN32)
