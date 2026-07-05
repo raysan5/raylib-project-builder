@@ -318,6 +318,12 @@ static bool showSaveAsProjectDialog = false;
 static bool showBuildProjectDialog = false;
 static bool buildProjectDeferred = false;       // Defer project bulding to show message
 
+// Info message panel, customizable variables
+static bool showInfoMessagePanel = false;       // Flag: request info message panel
+static const char *infoTitle = NULL;            // Info panel: title
+static const char *infoMessage = NULL;          // Info panel: message
+static const char *infoButton = NULL;           // Info panel: button text
+
 static int projectEditProperty = -1;
 //-----------------------------------------------------------------------------------
 
@@ -401,17 +407,19 @@ int main(int argc, char *argv[])
 
     // GUI usage mode - Initialization
     //--------------------------------------------------------------------------------------
-    //SetConfigFlags(FLAG_WINDOW_RESIZABLE);      // Window configuration flags
+    //SetConfigFlags(FLAG_WINDOW_RESIZABLE); // Window configuration flags
     InitWindow(screenWidth, screenHeight, TextFormat("%s v%s | %s", toolName, toolVersion, toolDescription));
     //SetWindowMinSize(1280, 720);
     SetExitKey(0);
 
-    // Create a RenderTexture2D to be used for render to texture
-    //target = LoadRenderTexture(512, 512);
-    //SetTextureFilter(target.texture, TEXTURE_FILTER_POINT);
-
     texPlatforms = LoadTexture("resources/platforms.png");
     SetTextureFilter(texPlatforms, TEXTURE_FILTER_BILINEAR);
+
+    // Welcome panel data
+    infoTitle = "#220# WARNING: rpb v1.0-alpha version";
+    infoMessage = "raylib project builder v1.0 is in alpha state,\nsome options could not work as expected.\nUse the report window to report any issues.";
+    infoButton = "Sure! Let's start!";
+    showInfoMessagePanel = true;
 
     LOG("INIT: Ready to show project building info...\n");
     LOG("-----------------------------------------------------------------\n");
@@ -641,6 +649,7 @@ static void UpdateDrawFrame(void)
         else if (windowAboutState.windowActive) windowAboutState.windowActive = false;
         else if (showIssueReportWindow) showIssueReportWindow = false;
         else if (showRaylibMessagePanel) showRaylibMessagePanel = false;
+        else if (showInfoMessagePanel) showInfoMessagePanel = false;
     #if defined(PLATFORM_DESKTOP)
         else if (saveChangesRequired) showMessageExit = !showMessageExit;
         else closeWindow = true;
@@ -700,6 +709,7 @@ static void UpdateDrawFrame(void)
         //windowUserState.windowActive ||
         showMessageExit ||
         showRaylibMessagePanel ||
+        showInfoMessagePanel ||
         showLoadFileDialog ||
         showLoadDirectoryDialog ||
         showLoadProjectDialog ||
@@ -972,6 +982,7 @@ static void UpdateDrawFrame(void)
             //windowUserState.windowActive ||
             showMessageExit ||
             showRaylibMessagePanel ||
+            showInfoMessagePanel ||
             showLoadFileDialog ||
             showLoadDirectoryDialog ||
             showLoadProjectDialog ||
@@ -984,90 +995,6 @@ static void UpdateDrawFrame(void)
 
         // WARNING: Before drawing the windows, unlock raygui input
         GuiUnlock();
-
-        // GUI: Show info message panel
-        //----------------------------------------------------------------------------------------
-        if (showRaylibMessagePanel)
-        {
-            const char *infoTitle = NULL;
-            const char *infoMessage = NULL;
-            const char *infoButton01 = NULL;
-            const char *infoButton02 = NULL;
-
-            switch (raylibError)
-            {
-                case 1:     // raylib path not found
-                {
-                    infoTitle = "#220#WARNING: raylib src path not found!";
-                    infoMessage = "raylib src path provided by project config file (.rpc) not found.\nraylib library is required to build project.";
-                    infoButton01 = "#173#BROWSE PATH";
-                    infoButton02 = "#131#CONTINUE";
-                } break;
-                case 2:     // missing raylib.h
-                {
-                    infoTitle = "#220#WARNING: raylib.h header not found!";
-                    infoMessage = "raylib.h is required to build raylib project, it must be found on\nraylib src path or installed in system include path.";
-                    infoButton01 = "#173#BROWSE PATH";
-                    infoButton02 = "#131#CONTINUE";
-                } break;
-                case 3:     // missing libraylib.a
-                {
-                    infoTitle = "#220#WARNING: libraylib.a library not found!";
-                    infoMessage = "libraylib.a is required to build raylib project, it should be found on\nraylib src path, installed in system library path\nor re-built along project building.";
-                    infoButton01 = "#76#REBUILD ON BUILDING";
-                    infoButton02 = "#131#CONTINUE";
-                } break;
-                case 4:     // missing libraylib.web.a
-                {
-                    infoTitle = "#220#WARNING: libraylib.web.a library not found!";
-                    infoMessage = "libraylib.web.a is required to build raylib project for web platform,\nit should be found on raylib src path, installed in system library path\nor re-built along project building.";
-                    infoButton01 = "#76#REBUILD ON BUILDING";
-                    infoButton02 = "#131#CONTINUE";
-                } break;
-                default: break;
-            }
-
-            Rectangle panelRec = { -10, screenHeight/2 - 210, screenWidth + 20, 360 };
-            GuiPanel(panelRec, NULL);
-
-            int textSpacing = GuiGetStyle(DEFAULT, TEXT_SPACING);
-            GuiSetIconScale(3);
-            GuiSetStyle(DEFAULT, TEXT_SIZE, GuiGetFont().baseSize*3);
-            GuiSetStyle(DEFAULT, TEXT_SPACING, 0);
-            GuiSetStyle(LABEL, TEXT_ALIGNMENT, TEXT_ALIGN_CENTER);
-            GuiSetStyle(LABEL, TEXT_COLOR_NORMAL, GuiGetStyle(DEFAULT, TEXT_COLOR_PRESSED));
-            GuiLabel((Rectangle){ -10, panelRec.y + 32, screenWidth + 20, 30 }, infoTitle);
-            GuiSetStyle(LABEL, TEXT_COLOR_NORMAL, GuiGetStyle(DEFAULT, TEXT_COLOR_NORMAL));
-            GuiSetStyle(DEFAULT, TEXT_SIZE, GuiGetFont().baseSize*2);
-            GuiSetIconScale(2);
-            GuiSetStyle(DEFAULT, TEXT_LINE_SPACING, 10);
-            GuiLabel((Rectangle){ 0, panelRec.y + 90, screenWidth + 20, 160 }, infoMessage);
-            GuiSetStyle(DEFAULT, TEXT_LINE_SPACING, 8);
-
-            int btnWidth = (GetScreenWidth() - 160 - 12)/2;
-            if (GuiButton((Rectangle){ 80, panelRec.y + panelRec.height - 72, btnWidth, 48 }, infoButton01))
-            {
-                if ((raylibError == 1) || (raylibError == 2))
-                {
-                    showLoadRaylibDirectoryDialog = true;
-                    strcpy(inFilePath, GetWorkingDirectory());
-                }
-                else rpcSetValue(project, "BUILD_FLAG_RAYLIB_REBUILD", 1);
-
-                showRaylibMessagePanel = false;
-            }
-
-            if (GuiButton((Rectangle){ 80 + btnWidth + 12, panelRec.y + panelRec.height - 72, btnWidth, 48 }, infoButton02))
-            {
-                showRaylibMessagePanel = false;
-            }
-
-            GuiSetStyle(LABEL, TEXT_ALIGNMENT, TEXT_ALIGN_LEFT);
-            GuiSetStyle(DEFAULT, TEXT_SIZE, GuiGetFont().baseSize);
-            GuiSetStyle(DEFAULT, TEXT_SPACING, textSpacing);
-            GuiSetIconScale(1);
-        }
-        //----------------------------------------------------------------------------------------
 
         // GUI: Help Window
         //----------------------------------------------------------------------------------------
@@ -1300,6 +1227,124 @@ static void UpdateDrawFrame(void)
             GuiLabel((Rectangle){ 0, GetScreenHeight()/2 - 300/2 + 180, GetScreenWidth(), 80 }, "#220#WARNING: It could take some seconds...");
             GuiSetStyle(LABEL, TEXT_ALIGNMENT, TEXT_ALIGN_LEFT);
             GuiSetStyle(DEFAULT, TEXT_SIZE, GuiGetFont().baseSize);
+            GuiSetIconScale(1);
+        }
+        //----------------------------------------------------------------------------------------
+
+        // GUI: Show info message panel
+        //----------------------------------------------------------------------------------------
+        if (showInfoMessagePanel)
+        {
+            Rectangle panelRec = { -10, screenHeight/2 - 210, screenWidth + 20, 360 };
+            GuiPanel(panelRec, NULL);
+
+            int textSpacing = GuiGetStyle(DEFAULT, TEXT_SPACING);
+            GuiSetIconScale(3);
+            GuiSetStyle(DEFAULT, TEXT_SIZE, GuiGetFont().baseSize*3);
+            GuiSetStyle(DEFAULT, TEXT_SPACING, 0);
+            GuiSetStyle(LABEL, TEXT_ALIGNMENT, TEXT_ALIGN_CENTER);
+            GuiSetStyle(LABEL, TEXT_COLOR_NORMAL, GuiGetStyle(DEFAULT, TEXT_COLOR_PRESSED));
+            GuiLabel((Rectangle){ -10, panelRec.y + 48, screenWidth + 20, 30 }, infoTitle);
+            GuiSetStyle(LABEL, TEXT_COLOR_NORMAL, GuiGetStyle(DEFAULT, TEXT_COLOR_NORMAL));
+            GuiSetStyle(DEFAULT, TEXT_SIZE, GuiGetFont().baseSize*2);
+            GuiSetIconScale(2);
+            GuiSetStyle(DEFAULT, TEXT_LINE_SPACING, 10);
+            GuiLabel((Rectangle){ 0, panelRec.y + 90, screenWidth + 20, 160 }, infoMessage);
+            GuiSetStyle(DEFAULT, TEXT_LINE_SPACING, 8);
+
+            int btnWidth = (GetScreenWidth() - 160 - 12);
+            if (GuiButton((Rectangle){ 80, panelRec.y + panelRec.height - 86, btnWidth, 48 }, infoButton))
+            {
+                showInfoMessagePanel = false;
+            }
+
+            GuiSetStyle(LABEL, TEXT_ALIGNMENT, TEXT_ALIGN_LEFT);
+            GuiSetStyle(DEFAULT, TEXT_SIZE, GuiGetFont().baseSize);
+            GuiSetStyle(DEFAULT, TEXT_SPACING, textSpacing);
+            GuiSetIconScale(1);
+        }
+        //----------------------------------------------------------------------------------------
+
+        // GUI: Show info message panel
+        //----------------------------------------------------------------------------------------
+        if (showRaylibMessagePanel)
+        {
+            const char *infoTitle = NULL;
+            const char *infoMessage = NULL;
+            const char *infoButton01 = NULL;
+            const char *infoButton02 = NULL;
+
+            switch (raylibError)
+            {
+            case 1:     // raylib path not found
+            {
+                infoTitle = "#220#WARNING: raylib src path not found!";
+                infoMessage = "raylib src path provided by project config file (.rpc) not found.\nraylib library is required to build project.";
+                infoButton01 = "#173#BROWSE PATH";
+                infoButton02 = "#131#CONTINUE";
+            } break;
+            case 2:     // missing raylib.h
+            {
+                infoTitle = "#220#WARNING: raylib.h header not found!";
+                infoMessage = "raylib.h is required to build raylib project, it must be found on\nraylib src path or installed in system include path.";
+                infoButton01 = "#173#BROWSE PATH";
+                infoButton02 = "#131#CONTINUE";
+            } break;
+            case 3:     // missing libraylib.a
+            {
+                infoTitle = "#220#WARNING: libraylib.a library not found!";
+                infoMessage = "libraylib.a is required to build raylib project, it should be found on\nraylib src path, installed in system library path\nor re-built along project building.";
+                infoButton01 = "#76#REBUILD ON BUILDING";
+                infoButton02 = "#131#CONTINUE";
+            } break;
+            case 4:     // missing libraylib.web.a
+            {
+                infoTitle = "#220#WARNING: libraylib.web.a library not found!";
+                infoMessage = "libraylib.web.a is required to build raylib project for web platform,\nit should be found on raylib src path, installed in system library path\nor re-built along project building.";
+                infoButton01 = "#76#REBUILD ON BUILDING";
+                infoButton02 = "#131#CONTINUE";
+            } break;
+            default: break;
+            }
+
+            Rectangle panelRec = { -10, screenHeight/2 - 210, screenWidth + 20, 360 };
+            GuiPanel(panelRec, NULL);
+
+            int textSpacing = GuiGetStyle(DEFAULT, TEXT_SPACING);
+            GuiSetIconScale(3);
+            GuiSetStyle(DEFAULT, TEXT_SIZE, GuiGetFont().baseSize*3);
+            GuiSetStyle(DEFAULT, TEXT_SPACING, 0);
+            GuiSetStyle(LABEL, TEXT_ALIGNMENT, TEXT_ALIGN_CENTER);
+            GuiSetStyle(LABEL, TEXT_COLOR_NORMAL, GuiGetStyle(DEFAULT, TEXT_COLOR_PRESSED));
+            GuiLabel((Rectangle){ -10, panelRec.y + 32, screenWidth + 20, 30 }, infoTitle);
+            GuiSetStyle(LABEL, TEXT_COLOR_NORMAL, GuiGetStyle(DEFAULT, TEXT_COLOR_NORMAL));
+            GuiSetStyle(DEFAULT, TEXT_SIZE, GuiGetFont().baseSize*2);
+            GuiSetIconScale(2);
+            GuiSetStyle(DEFAULT, TEXT_LINE_SPACING, 10);
+            GuiLabel((Rectangle){ 0, panelRec.y + 90, screenWidth + 20, 160 }, infoMessage);
+            GuiSetStyle(DEFAULT, TEXT_LINE_SPACING, 8);
+
+            int btnWidth = (GetScreenWidth() - 160 - 12)/2;
+            if (GuiButton((Rectangle){ 80, panelRec.y + panelRec.height - 72, btnWidth, 48 }, infoButton01))
+            {
+                if ((raylibError == 1) || (raylibError == 2))
+                {
+                    showLoadRaylibDirectoryDialog = true;
+                    strcpy(inFilePath, GetWorkingDirectory());
+                }
+                else rpcSetValue(project, "BUILD_FLAG_RAYLIB_REBUILD", 1);
+
+                showRaylibMessagePanel = false;
+            }
+
+            if (GuiButton((Rectangle){ 80 + btnWidth + 12, panelRec.y + panelRec.height - 72, btnWidth, 48 }, infoButton02))
+            {
+                showRaylibMessagePanel = false;
+            }
+
+            GuiSetStyle(LABEL, TEXT_ALIGNMENT, TEXT_ALIGN_LEFT);
+            GuiSetStyle(DEFAULT, TEXT_SIZE, GuiGetFont().baseSize);
+            GuiSetStyle(DEFAULT, TEXT_SPACING, textSpacing);
             GuiSetIconScale(1);
         }
         //----------------------------------------------------------------------------------------
