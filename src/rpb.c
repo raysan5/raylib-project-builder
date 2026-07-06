@@ -2464,7 +2464,7 @@ static char *LoadWebLocalStorage(const char *key)
 
     // Run the script and get the result as a string
     const char *loadedData = emscripten_run_script_string(TextFormat("localStorage.getItem('%s')", key));
-    strncpy(result, loadedData, sizeof(result) - 1);
+    snprintf(result, sizeof(result), "%s", loadedData);
     result[sizeof(result) - 1] = '\0';
 
     return result;
