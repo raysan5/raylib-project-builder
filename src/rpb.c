@@ -25,7 +25,7 @@
 *
 *   DEPENDENCIES:
 *       raylib 6.1-dev          - Windowing/input management and drawing
-*       raygui 5.0-dev          - Immediate-mode GUI controls with custom styling and icons
+*       raygui 5.0              - Immediate-mode GUI controls with custom styling and icons
 *       rpng 1.5                - PNG chunks management
 *       rini 3.0                - Configuration file load/save
 *       tinyfiledialogs 3.19.1  - Opensave file dialogs, it requires linkage with comdlg32 and ole32 libs
@@ -464,7 +464,7 @@ int main(int argc, char *argv[])
     if ((inProjectFilePath[0] != '\0') && (IsFileExtension(inProjectFilePath, ".rpc")))
     {
         // Load project config file (.rpc) into [project]
-        LoadProjectConfig(inProjectFilePath);       
+        LoadProjectConfig(inProjectFilePath);
     }
     //-------------------------------------------------------------------------------------
 #endif
@@ -744,7 +744,7 @@ static void UpdateDrawFrame(void)
         {
             if (!buildPlatformsEnabled[i]) GuiDisable();
 
-            if ((project.entryCount != 0) && (i == hostPlatformId)) 
+            if ((project.entryCount != 0) && (i == hostPlatformId))
                 DrawRectangleRec((Rectangle){ 12 + (96 + 8)*i - 2, 76 - 2, 100, 100 }, Fade(GetColor(GuiGetStyle(DEFAULT, BASE_COLOR_PRESSED)), 0.8f));
 
             GuiToggle((Rectangle){ 12 + (96 + 8)*i, 76, 96, 96 }, NULL, &platformEnabled[i]);
@@ -826,7 +826,7 @@ static void UpdateDrawFrame(void)
                         GuiSetIconScale(3);
                         GuiSetStyle(LABEL, TEXT_ALIGNMENT, TEXT_ALIGN_CENTER);
                         GuiSetStyle(DEFAULT, TEXT_SIZE, GuiGetFont().baseSize*2);
-                        GuiLabel((Rectangle){ 24, tabBarOffsetY + 36 + panelScroll.y, GetScreenWidth() - 48, 48 }, 
+                        GuiLabel((Rectangle){ 24, tabBarOffsetY + 36 + panelScroll.y, GetScreenWidth() - 48, 48 },
                             "#220# WARNING: Use [rpc] to modify project settings!");
                         GuiSetStyle(DEFAULT, TEXT_SIZE, GuiGetFont().baseSize);
                         GuiSetStyle(LABEL, TEXT_ALIGNMENT, TEXT_ALIGN_LEFT);
@@ -879,7 +879,7 @@ static void UpdateDrawFrame(void)
                         {
                             if ((IsPathAbsolute(project.entries[i].text) && !FileExists(project.entries[i].text)) ||
                                 (!FileExists(TextFormat("%s/%s", GetDirectoryPath(inProjectFilePath), project.entries[i].text))))
-                                DrawRectangleLinesEx((Rectangle){ textOffsetX, tabBarOffsetY + 36 + (24 + 8)*k + panelScroll.y, textWidth - 90, 24 }, 
+                                DrawRectangleLinesEx((Rectangle){ textOffsetX, tabBarOffsetY + 36 + (24 + 8)*k + panelScroll.y, textWidth - 90, 24 },
                                     2.0f, Fade(GetColor(GuiGetStyle(DEFAULT, BASE_COLOR_PRESSED)), 0.8f));
                         }
 
@@ -900,12 +900,12 @@ static void UpdateDrawFrame(void)
                             if (IsPathAbsolute(project.entries[i].text))
                             {
                                 if (!DirectoryExists(project.entries[i].text))
-                                    DrawRectangleLinesEx((Rectangle){ textOffsetX, tabBarOffsetY + 36 + (24 + 8)*k + panelScroll.y, textWidth - 90, 24 }, 
+                                    DrawRectangleLinesEx((Rectangle){ textOffsetX, tabBarOffsetY + 36 + (24 + 8)*k + panelScroll.y, textWidth - 90, 24 },
                                         2.0f, Fade(GetColor(GuiGetStyle(DEFAULT, BASE_COLOR_PRESSED)), 0.8f));
                             }
                             else if (!DirectoryExists(TextFormat("%s/%s", GetDirectoryPath(inProjectFilePath), project.entries[i].text)))
                             {
-                                DrawRectangleLinesEx((Rectangle){ textOffsetX, tabBarOffsetY + 36 + (24 + 8)*k + panelScroll.y, textWidth - 90, 24 }, 
+                                DrawRectangleLinesEx((Rectangle){ textOffsetX, tabBarOffsetY + 36 + (24 + 8)*k + panelScroll.y, textWidth - 90, 24 },
                                     2.0f, Fade(GetColor(GuiGetStyle(DEFAULT, BASE_COLOR_PRESSED)), 0.8f));
                             }
                         }
@@ -1048,15 +1048,16 @@ static void UpdateDrawFrame(void)
         if (showIssueReportWindow)
         {
             Rectangle messageBox = { (float)GetScreenWidth()/2 - 300/2, (float)GetScreenHeight()/2 - 190/2 - 20, 300, 190 };
-            int result = GuiMessageBox(messageBox, "#220#Report Issue",
-                "Do you want to report any issue or\nfeature request for this program?\n\ngithub.com/raylibtech/rtools", "#186#Report on GitHub");
+            int btnActive = -1;
+            GuiMessageBox(messageBox, "#220#Report Issue",
+                "Do you want to report any issue or\nfeature request for this program?\n\ngithub.com/raylibtech/rtools", "#186#Report on GitHub", &btnActive);
 
-            if (result == 1)    // Report issue pressed
+            if (btnActive == 1)    // Report issue pressed
             {
                 OpenURL("https://github.com/raylibtech/rtools/issues");
                 showIssueReportWindow = false;
             }
-            else if (result == 0) showIssueReportWindow = false;
+            else if (btnActive == 0) showIssueReportWindow = false;
         }
         //----------------------------------------------------------------------------------------
 
@@ -1390,11 +1391,12 @@ static void UpdateDrawFrame(void)
         //----------------------------------------------------------------------------------------
         if (showMessageExit)
         {
-            int message = GuiMessageBox((Rectangle){ GetScreenWidth()/2 - 320/2, GetScreenHeight()/2 - 50, 320, 100 }, 
-                TextFormat("#159#Closing %s", toolName), "Do you really want to exit?", "Yes;No");
+            int btnActive = -1;
+            GuiMessageBox((Rectangle){ GetScreenWidth()/2 - 320/2, GetScreenHeight()/2 - 50, 320, 100 },
+                TextFormat("#159#Closing %s", toolName), "Do you really want to exit?", "#112#Yes;#113#No", &btnActive);
 
-            if ((message == 0) || (message == 2)) showMessageExit = false;
-            else if (message == 1) closeWindow = true;
+            if ((btnActive == 0) || (btnActive == 2)) showMessageExit = false;
+            else if (btnActive == 1) closeWindow = true;
         }
         //----------------------------------------------------------------------------------------
 
@@ -1503,7 +1505,7 @@ static void ShowCommandLineInfo(void)
 static void ProcessCommandLine(int argc, char *argv[])
 {
     rpcProjectConfig config = { 0 };    // Project config data
-    
+
     bool showUsageInfo = false;         // Toggle command line usage info
     int buildPlatform = -1;             // Target build platform
     char buildPath[256] = { 0 };        // Build output path
@@ -1532,7 +1534,7 @@ static void ProcessCommandLine(int argc, char *argv[])
 
                     // Validate input project file
                     if (IsPathAbsolute(argv[i + 1]) && FileExists(argv[i + 1])) strcpy(inputFilePath, argv[i + 1]);
-                    else if (FileExists(TextFormat("%s/%s", GetWorkingDirectory(), argv[i + 1]))) 
+                    else if (FileExists(TextFormat("%s/%s", GetWorkingDirectory(), argv[i + 1])))
                         strcpy(inputFilePath, TextFormat("%s/%s", GetWorkingDirectory(), argv[i + 1]));
                     else printf("WARNING: [%s] Input project file can not be found\n", argv[i + 1]);
 
@@ -1870,10 +1872,10 @@ static int BuildProject(rpcProjectConfig config, int platform, const char *build
             if (toggleOptionActive == 0) // MSBUILD
             {
                 // 1. Setup environment (...)
-                
+
                 // 2. Build raylib library
                 //    - VS2022 project should already include raylib as a dependency to build
-                
+
                 // 3. Build project (MSBuild)
                 // Check if VS2022 project is available
                 if (DirectoryExists(TextFormat("%s/projects/VS2022", GetDirectoryPath(inProjectFilePath))))
@@ -1890,7 +1892,7 @@ static int BuildProject(rpcProjectConfig config, int platform, const char *build
 
                 // Copy VS2022 build result to build output directory
                 FileCopy(TextFormat("%s/projects/VS2022/build/%s/bin/x64/Release/%s.exe",
-                    GetDirectoryPath(inProjectFilePath), rpcGetText(config, "PROJECT_INTERNAL_NAME"), 
+                    GetDirectoryPath(inProjectFilePath), rpcGetText(config, "PROJECT_INTERNAL_NAME"),
                     rpcGetText(config, "PROJECT_INTERNAL_NAME")),
                     TextFormat("%s/%s.exe", buildOutputPath, rpcGetText(config, "PROJECT_INTERNAL_NAME")));
             }
@@ -2008,7 +2010,7 @@ static int BuildProject(rpcProjectConfig config, int platform, const char *build
             // 3. Build project (Makefile)
             ChangeDirectory(TextFormat("%s", buildOutputPath));
             system(TextFormat("make -C %s PROJECT_NAME=%s PLATFORM=PLATFORM_DESKTOP RAYLIB_SRC_PATH=%s PROJECT_BUILD_PATH=%s -B",
-                TextFormat("%s/src", GetDirectoryPath(inProjectFilePath)), 
+                TextFormat("%s/src", GetDirectoryPath(inProjectFilePath)),
                 rpcGetText(config, "PROJECT_INTERNAL_NAME"), rpcGetText(config, "RAYLIB_SRC_PATH"),
                 buildOutputPath));
 
@@ -2081,8 +2083,8 @@ static int BuildProject(rpcProjectConfig config, int platform, const char *build
             // 3. Build project (Makefile)
             ChangeDirectory(TextFormat("%s/src", GetDirectoryPath(inProjectFilePath)));
             system(TextFormat("make PROJECT_NAME=%s PLATFORM=PLATFORM_DESKTOP PROJECT_BUILD_PATH=%s/%s.app/Contents/MacOS RAYLIB_SRC_PATH=%s -B",
-                rpcGetText(config, "PROJECT_INTERNAL_NAME"), 
-                buildOutputPath, rpcGetText(config, "PROJECT_INTERNAL_NAME"), 
+                rpcGetText(config, "PROJECT_INTERNAL_NAME"),
+                buildOutputPath, rpcGetText(config, "PROJECT_INTERNAL_NAME"),
                 rpcGetText(config, "RAYLIB_SRC_PATH")));
 
             // 4. Process assets
@@ -2111,8 +2113,8 @@ static int BuildProject(rpcProjectConfig config, int platform, const char *build
             //
             // ENVIRONMENT REQUIREMENTS:
             //    - Emscripten SDK: https://github.com/emscripten-core/emsdk
-            // 
- 
+            //
+
             // 1. Setup environment
             PUTENV(TextFormat("PROJECT_BUILD_PATH=%s", buildOutputPath));
 #if defined(_WIN32)
@@ -2138,7 +2140,7 @@ static int BuildProject(rpcProjectConfig config, int platform, const char *build
             // WARNING: raylib.h can not be found by emcc /usr/local/include must be added
             // WARNING: Path to libraylib.web.a must be provided to be found
             ChangeDirectory(TextFormat("%s", buildOutputPath));
-            system(TextFormat("make -C %s/src PLATFORM=PLATFORM_WEB RAYLIB_SRC_PATH=%s BUILD_WEB_SHELL=%s/%s BUILD_WEB_HEAP_SIZE=%iMB -B", 
+            system(TextFormat("make -C %s/src PLATFORM=PLATFORM_WEB RAYLIB_SRC_PATH=%s BUILD_WEB_SHELL=%s/%s BUILD_WEB_HEAP_SIZE=%iMB -B",
                 GetDirectoryPath(inProjectFilePath), rpcGetText(config, "RAYLIB_SRC_PATH"),
                 GetDirectoryPath(inProjectFilePath), rpcGetText(config, "PLATFORM_WEB_SHELL_FILE"),
                 rpcGetValue(config, "PLATFORM_WEB_HEAP_MEMORY_SIZE")));
@@ -2182,8 +2184,8 @@ static int BuildProject(rpcProjectConfig config, int platform, const char *build
             //    - Android NDK: https://developer.android.com/ndk/downloads
             //    - Android SDK: https://developer.android.com/tools/releases/platform-tools
             //    - GNU Make (depends on platform)
-            // 
-       
+            //
+
             // 1. Setup environment (...)
             // NOTE: Environmnt expected to be pre-configured by users
 #if defined(_WIN32)
@@ -2229,7 +2231,7 @@ static int BuildProject(rpcProjectConfig config, int platform, const char *build
             // ENVIRONMENT REQUIREMENTS:
             //    - ESP-IDF (Espressif's IoT Development Framework): https://docs.espressif.com/projects/esp-idf/en/stable/esp32/get-started/index.html
             //    - Raylib for ESP-IDF: https://components.espressif.com/components/georgik/raylib/versions/6.0.0~2/readme
-            // 
+            //
 
             #if defined(_WIN32)
 
@@ -2244,7 +2246,7 @@ static int BuildProject(rpcProjectConfig config, int platform, const char *build
             // ENVIRONMENT REQUIREMENTS:
             //    - DreamSDK (including KallistiOS): https://github.com/dreamsdk/dreamsdk/releases/tag/r4-4.0.11.2508
             //    - raylib4Dreamcast: https://github.com/raylib4Consoles/raylib4Dreamcast
-            // 
+            //
 
             #if defined(_WIN32)
 
@@ -2259,7 +2261,7 @@ static int BuildProject(rpcProjectConfig config, int platform, const char *build
             // ENVIRONMENT REQUIREMENTS:
             //    - Switch devkit + SDK (private, only for registered developers)
             //    - raylib Switch port (private): ray@raylib.com
-            // 
+            //
 
             #if defined(_WIN32)
 
